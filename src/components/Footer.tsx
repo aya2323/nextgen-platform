@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Zap } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -6,13 +7,10 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="grid gap-8 md:grid-cols-3">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <img
-                src="/nextgen-logo.png"
-                alt="NEXTGEN"
-                style={{ height: 32 }}
-                className="object-contain"
-              />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center shrink-0">
+                <Zap size={16} className="text-white" />
+              </div>
               <span className="text-lg font-bold gradient-text">NEXTGEN</span>
             </div>
             <p className="text-sm text-gray-400 max-w-xs">

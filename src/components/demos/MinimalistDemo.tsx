@@ -16,7 +16,15 @@ interface Props {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  features?: string[];
 }
+
+const DEFAULT_FEATURES = [
+  "AI-Powered Analytics Dashboard",
+  "Smart Client Onboarding",
+  "Automated Lead Scoring",
+  "Real-time Performance Reports",
+];
 
 export default function MinimalistDemo({
   company,
@@ -24,13 +32,11 @@ export default function MinimalistDemo({
   primaryColor,
   secondaryColor,
   accentColor,
+  features: selectedFeatures = [],
 }: Props) {
-  const features = [
-    "AI-Powered Analytics Dashboard",
-    "Smart Client Onboarding",
-    "Automated Lead Scoring",
-    "Real-time Performance Reports",
-  ];
+  const displayFeatures = selectedFeatures.length > 0
+    ? selectedFeatures.slice(0, 4)
+    : DEFAULT_FEATURES;
 
   const stats = [
     { label: "Revenue Increase", value: "+340%", icon: TrendingUp },
@@ -179,7 +185,7 @@ export default function MinimalistDemo({
             <span style={{ color: primaryColor }}>scale</span>
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
-            {features.map((feature, i) => (
+            {displayFeatures.map((feature, i) => (
               <motion.div
                 key={feature}
                 initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}

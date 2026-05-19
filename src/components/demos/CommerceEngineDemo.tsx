@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   ShoppingCart,
@@ -14,6 +15,12 @@ import {
   Sparkles,
   Package,
   ShieldCheck,
+  Bot,
+  BarChart3,
+  Cog,
+  Users,
+  Megaphone,
+  Puzzle,
 } from "lucide-react";
 
 interface Props {
@@ -22,7 +29,38 @@ interface Props {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  features?: string[];
 }
+
+const ALL_PRODUCTS = [
+  { name: "Smart Chatbot Pro", price: "$299", originalPrice: "$499", tag: "Best Seller", rating: 4.9, reviews: 284, category: "AI Chatbots" },
+  { name: "Enterprise Bot Suite", price: "$799", originalPrice: "$1,299", tag: "Most Popular", rating: 4.8, reviews: 156, category: "AI Chatbots" },
+  { name: "Conversational AI Kit", price: "$199", originalPrice: "$349", tag: "New", rating: 4.7, reviews: 92, category: "AI Chatbots" },
+  { name: "Insights Dashboard", price: "$399", originalPrice: "$699", tag: "Top Rated", rating: 5.0, reviews: 210, category: "Analytics" },
+  { name: "Predictive Engine", price: "$599", originalPrice: "$999", tag: "Popular", rating: 4.8, reviews: 134, category: "Analytics" },
+  { name: "Data Visualizer Pro", price: "$249", originalPrice: "$449", tag: "New", rating: 4.6, reviews: 78, category: "Analytics" },
+  { name: "Workflow Automator", price: "$499", originalPrice: "$899", tag: "Best Seller", rating: 4.9, reviews: 321, category: "Automation" },
+  { name: "Task AI Engine", price: "$349", originalPrice: "$599", tag: "Popular", rating: 4.7, reviews: 189, category: "Automation" },
+  { name: "Process Optimizer", price: "$699", originalPrice: "$1,199", tag: "Premium", rating: 4.8, reviews: 67, category: "Automation" },
+  { name: "CRM Intelligence", price: "$599", originalPrice: "$999", tag: "Top Rated", rating: 4.9, reviews: 256, category: "CRM Tools" },
+  { name: "Lead Scorer AI", price: "$399", originalPrice: "$699", tag: "Popular", rating: 4.8, reviews: 178, category: "CRM Tools" },
+  { name: "Client Manager Pro", price: "$249", originalPrice: "$449", tag: "New", rating: 4.6, reviews: 94, category: "CRM Tools" },
+  { name: "Campaign AI Suite", price: "$799", originalPrice: "$1,399", tag: "Best Seller", rating: 4.9, reviews: 198, category: "Marketing AI" },
+  { name: "Ad Optimizer", price: "$349", originalPrice: "$599", tag: "Popular", rating: 4.7, reviews: 145, category: "Marketing AI" },
+  { name: "Content Generator", price: "$199", originalPrice: "$349", tag: "New", rating: 4.5, reviews: 87, category: "Marketing AI" },
+  { name: "Custom Model Builder", price: "$2,499", originalPrice: "$3,999", tag: "Premium", rating: 5.0, reviews: 89, category: "Custom Models" },
+  { name: "AI Training Kit", price: "$1,499", originalPrice: "$2,499", tag: "Enterprise", rating: 4.9, reviews: 52, category: "Custom Models" },
+  { name: "Neural Architect", price: "$999", originalPrice: "$1,799", tag: "Pro", rating: 4.8, reviews: 43, category: "Custom Models" },
+];
+
+const CATEGORY_ICONS: Record<string, typeof Bot> = {
+  "AI Chatbots": Bot,
+  "Analytics": BarChart3,
+  "Automation": Cog,
+  "CRM Tools": Users,
+  "Marketing AI": Megaphone,
+  "Custom Models": Puzzle,
+};
 
 export default function CommerceEngineDemo({
   company,
@@ -30,33 +68,11 @@ export default function CommerceEngineDemo({
   primaryColor,
   secondaryColor,
   accentColor,
+  features = [],
 }: Props) {
-  const products = [
-    {
-      name: "AI Starter Suite",
-      price: "$299",
-      originalPrice: "$499",
-      tag: "Best Seller",
-      rating: 4.9,
-      reviews: 284,
-    },
-    {
-      name: "Professional Platform",
-      price: "$799",
-      originalPrice: "$1,299",
-      tag: "Most Popular",
-      rating: 4.8,
-      reviews: 156,
-    },
-    {
-      name: "Enterprise Engine",
-      price: "$2,499",
-      originalPrice: "$3,999",
-      tag: "Premium",
-      rating: 5.0,
-      reviews: 89,
-    },
-  ];
+  const [activeCategory, setActiveCategory] = useState("AI Chatbots");
+
+  const filteredProducts = ALL_PRODUCTS.filter((p) => p.category === activeCategory);
 
   const benefits = [
     { icon: Truck, label: "Free Deployment", desc: "Launch in 24 hours" },
@@ -104,9 +120,14 @@ export default function CommerceEngineDemo({
         </div>
         <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
           {categories.slice(0, 4).map((cat) => (
-            <span key={cat} className="hover:text-white cursor-pointer transition-colors">
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className="transition-colors"
+              style={{ color: activeCategory === cat ? primaryColor : undefined }}
+            >
               {cat}
-            </span>
+            </button>
           ))}
         </div>
         <div className="flex items-center gap-3">
@@ -208,26 +229,33 @@ export default function CommerceEngineDemo({
         style={{ borderColor: `${primaryColor}10` }}
       >
         <div className="flex gap-3 overflow-x-auto max-w-5xl mx-auto">
-          {categories.map((cat, i) => (
-            <button
-              key={cat}
-              className="shrink-0 px-5 py-2 rounded-full text-sm font-medium transition-all"
-              style={
-                i === 0
-                  ? {
-                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                      color: "white",
-                    }
-                  : {
-                      border: `1px solid ${primaryColor}20`,
-                      color: "#9ca3af",
-                      background: "transparent",
-                    }
-              }
-            >
-              {cat}
-            </button>
-          ))}
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat;
+            const CatIcon = CATEGORY_ICONS[cat] || Package;
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className="shrink-0 px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2"
+                style={
+                  isActive
+                    ? {
+                        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                        color: "white",
+                        boxShadow: `0 0 15px ${primaryColor}30`,
+                      }
+                    : {
+                        border: `1px solid ${primaryColor}20`,
+                        color: "#9ca3af",
+                        background: "transparent",
+                      }
+                }
+              >
+                <CatIcon size={14} />
+                {cat}
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -236,107 +264,150 @@ export default function CommerceEngineDemo({
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-white">
-              Featured{" "}
+              {activeCategory}{" "}
               <span style={{ color: primaryColor }}>Products</span>
             </h2>
             <span className="text-sm text-gray-500">
-              AI-curated for {industry.toLowerCase()}
+              {filteredProducts.length} products · AI-curated for {industry.toLowerCase()}
             </span>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {products.map((product, i) => (
-              <motion.div
-                key={product.name}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + i * 0.12 }}
-                className="rounded-xl border overflow-hidden group transition-all hover:scale-[1.02]"
-                style={{
-                  borderColor: `${primaryColor}15`,
-                  background: "#0a0a16",
-                }}
-              >
-                {/* Product Image Placeholder */}
-                <div
-                  className="h-48 flex items-center justify-center relative"
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCategory}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="grid md:grid-cols-3 gap-6"
+            >
+              {filteredProducts.map((product, i) => (
+                <motion.div
+                  key={product.name}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="rounded-xl border overflow-hidden group transition-all hover:scale-[1.02]"
                   style={{
-                    background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}10)`,
+                    borderColor: `${primaryColor}15`,
+                    background: "#0a0a16",
                   }}
                 >
-                  <Package
-                    size={48}
-                    style={{
-                      color: i === 1 ? secondaryColor : primaryColor,
-                    }}
-                    className="opacity-40"
-                  />
+                  {/* Product Image Placeholder */}
                   <div
-                    className="absolute top-3 left-3 px-2 py-0.5 rounded text-[10px] font-bold text-white"
+                    className="h-48 flex items-center justify-center relative"
                     style={{
-                      background:
-                        i === 1
-                          ? secondaryColor
-                          : i === 2
-                          ? accentColor
-                          : primaryColor,
+                      background: `linear-gradient(135deg, ${primaryColor}10, ${secondaryColor}10)`,
                     }}
                   >
-                    {product.tag}
-                  </div>
-                  <button
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-black/30 backdrop-blur-sm"
-                  >
-                    <Heart size={14} className="text-gray-400" />
-                  </button>
-                </div>
-
-                <div className="p-5">
-                  <div className="flex items-center gap-1 mb-2">
-                    {[...Array(5)].map((_, j) => (
-                      <Star
-                        key={j}
-                        size={12}
-                        fill={accentColor}
-                        style={{ color: accentColor }}
-                      />
-                    ))}
-                    <span className="text-xs text-gray-500 ml-1">
-                      {product.rating} ({product.reviews})
-                    </span>
-                  </div>
-
-                  <h3 className="text-white font-semibold mb-3">
-                    {product.name}
-                  </h3>
-
-                  <div className="flex items-end gap-2 mb-4">
-                    <span
-                      className="text-2xl font-black"
-                      style={{ color: primaryColor }}
+                    {(() => {
+                      const Icon = CATEGORY_ICONS[activeCategory] || Package;
+                      return (
+                        <Icon
+                          size={48}
+                          style={{
+                            color: i === 1 ? secondaryColor : primaryColor,
+                          }}
+                          className="opacity-40"
+                        />
+                      );
+                    })()}
+                    <div
+                      className="absolute top-3 left-3 px-2 py-0.5 rounded text-[10px] font-bold text-white"
+                      style={{
+                        background:
+                          i === 1
+                            ? secondaryColor
+                            : i === 2
+                            ? accentColor
+                            : primaryColor,
+                      }}
                     >
-                      {product.price}
-                    </span>
-                    <span className="text-sm text-gray-500 line-through">
-                      {product.originalPrice}
-                    </span>
+                      {product.tag}
+                    </div>
+                    <button
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-black/30 backdrop-blur-sm"
+                    >
+                      <Heart size={14} className="text-gray-400" />
+                    </button>
                   </div>
 
-                  <button
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white transition-all"
-                    style={{
-                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                    }}
-                  >
-                    <ShoppingCart size={14} />
-                    Add to Cart
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="p-5">
+                    <div className="flex items-center gap-1 mb-2">
+                      {[...Array(5)].map((_, j) => (
+                        <Star
+                          key={j}
+                          size={12}
+                          fill={accentColor}
+                          style={{ color: accentColor }}
+                        />
+                      ))}
+                      <span className="text-xs text-gray-500 ml-1">
+                        {product.rating} ({product.reviews})
+                      </span>
+                    </div>
+
+                    <h3 className="text-white font-semibold mb-3">
+                      {product.name}
+                    </h3>
+
+                    <div className="flex items-end gap-2 mb-4">
+                      <span
+                        className="text-2xl font-black"
+                        style={{ color: primaryColor }}
+                      >
+                        {product.price}
+                      </span>
+                      <span className="text-sm text-gray-500 line-through">
+                        {product.originalPrice}
+                      </span>
+                    </div>
+
+                    <button
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white transition-all"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                      }}
+                    >
+                      <ShoppingCart size={14} />
+                      Add to Cart
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </section>
+
+      {/* Selected Features */}
+      {features.length > 0 && (
+        <section
+          className="px-8 md:px-16 py-12 border-t"
+          style={{ borderColor: `${primaryColor}10` }}
+        >
+          <div className="max-w-5xl mx-auto">
+            <h3 className="text-lg font-bold text-white mb-4">
+              Your Selected <span style={{ color: accentColor }}>Features</span>
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {features.map((f) => (
+                <span
+                  key={f}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border"
+                  style={{
+                    color: accentColor,
+                    borderColor: `${accentColor}30`,
+                    background: `${accentColor}10`,
+                  }}
+                >
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Trust Badges */}
       <section

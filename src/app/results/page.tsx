@@ -119,7 +119,8 @@ export default function ResultsPage() {
   const secondaryColor = formData?.secondaryColor || "#a855f7";
   const accentColor = formData?.accentColor || "#10b981";
 
-  const demoProps = { company, industry, primaryColor, secondaryColor, accentColor };
+  const features = formData?.features || [];
+  const demoProps = { company, industry, primaryColor, secondaryColor, accentColor, features };
 
   const getRecommendation = () => {
     if (!formData) return AI_RECOMMENDATIONS.default;

@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Zap } from "lucide-react";
+
+function LogoMark() {
+  return (
+    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(37,99,235,0.3)]">
+      <Zap size={22} className="text-white" />
+    </div>
+  );
+}
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -10,14 +18,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#2563eb]/20 bg-[#05050a]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <img
-            src="/nextgen-logo.png"
-            alt="NEXTGEN"
-            style={{ height: 40 }}
-            className="object-contain"
-          />
-          <span className="text-xl font-bold gradient-text hidden sm:inline">
+        <Link href="/" className="flex items-center gap-3">
+          <LogoMark />
+          <span className="text-xl font-bold tracking-tight gradient-text">
             NEXTGEN
           </span>
         </Link>

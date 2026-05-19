@@ -21,6 +21,7 @@ interface Props {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  features?: string[];
 }
 
 function generateParticleData() {

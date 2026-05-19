@@ -44,11 +44,9 @@ export default function Home() {
           className="relative z-10 text-center max-w-5xl mx-auto"
         >
           <motion.div variants={fadeUp} className="mb-4">
-            <img
-              src="/nextgen-logo.png"
-              alt="NEXTGEN"
-              className="h-16 md:h-20 mx-auto object-contain mb-6"
-            />
+            <div className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-2xl bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center shadow-[0_0_30px_rgba(37,99,235,0.4)] mb-6">
+              <Zap size={40} className="text-white md:w-12 md:h-12" />
+            </div>
           </motion.div>
           <motion.h1
             variants={fadeUp}
