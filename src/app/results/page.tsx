@@ -53,23 +53,190 @@ const FEATURE_TABS = [
   { id: "crm", label: "CRM Tools", icon: Users },
 ];
 
-function ChatbotPreview({ primaryColor, company }: { primaryColor: string; company: string }) {
-  const [messages, setMessages] = useState([
-    { from: "bot", text: `Welcome to ${company}! How can I help you today?` },
-  ]);
+/* ── Language Detection ── */
+function isArabic(text: string): boolean {
+  const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  const arabicChars = (text.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length;
+  const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
+  return arabicRegex.test(text) && arabicChars >= latinChars;
+}
+
+/* ── Industry-Specific Welcome Messages ── */
+function getIndustryWelcome(industry: string, company: string, lang: "ar" | "en"): string {
+  const lower = industry.toLowerCase();
+  const welcomes: Record<string, { en: string; ar: string }> = {
+    "real estate": {
+      en: `Welcome to ${company}! I can help you showcase your properties, filter locations, and capture leads easily. Want to see our property listing forms?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في عرض عقاراتك وتصفية المواقع والتقاط العملاء المحتملين بسهولة. هل تريد رؤية نماذج قوائم العقارات الخاصة بنا؟`,
+    },
+    ecommerce: {
+      en: `Welcome to ${company}! I can help you set up product catalogs, shopping carts, and checkout flows. Ready to build your online store?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في إعداد كتالوجات المنتجات وعربات التسوق وعمليات الدفع. هل أنت مستعد لبناء متجرك الإلكتروني؟`,
+    },
+    "e-commerce": {
+      en: `Welcome to ${company}! I can help you set up product catalogs, shopping carts, and checkout flows. Ready to build your online store?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في إعداد كتالوجات المنتجات وعربات التسوق وعمليات الدفع. هل أنت مستعد لبناء متجرك الإلكتروني؟`,
+    },
+    clothing: {
+      en: `Welcome to ${company}! I can help you build a stunning fashion storefront with product galleries, size guides, and style recommendations. Shall we start?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في بناء واجهة أزياء مذهلة مع معارض المنتجات ودليل المقاسات وتوصيات الأنماط. هل نبدأ؟`,
+    },
+    fashion: {
+      en: `Welcome to ${company}! I can help you build a stunning fashion storefront with product galleries, size guides, and style recommendations. Shall we start?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في بناء واجهة أزياء مذهلة مع معارض المنتجات ودليل المقاسات وتوصيات الأنماط. هل نبدأ؟`,
+    },
+    healthcare: {
+      en: `Welcome to ${company}! I can help you create patient portals, appointment booking, and health tracking dashboards. How can I assist you?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في إنشاء بوابات المرضى وحجز المواعيد ولوحات تتبع الصحة. كيف يمكنني مساعدتك؟`,
+    },
+    education: {
+      en: `Welcome to ${company}! I can help you build course pages, student portals, and interactive learning tools. What would you like to explore?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في بناء صفحات الدورات وبوابات الطلاب وأدوات التعلم التفاعلية. ماذا تريد أن تستكشف؟`,
+    },
+    restaurant: {
+      en: `Welcome to ${company}! I can help you design menus, online ordering, and reservation systems. What feature interests you most?`,
+      ar: `مرحبًا بك في ${company}! يمكنني مساعدتك في تصميم القوائم والطلب عبر الإنترنت وأنظمة الحجز. ما الميزة التي تهمك أكثر؟`,
+    },
+  };
+  for (const [key, msgs] of Object.entries(welcomes)) {
+    if (lower.includes(key)) return msgs[lang];
+  }
+  return lang === "ar"
+    ? `مرحبًا بك في ${company}! أنا مساعدك الذكي. كيف يمكنني مساعدتك في بناء موقعك اليوم؟`
+    : `Welcome to ${company}! I'm your AI assistant. How can I help you build your site today?`;
+}
+
+/* ── Bilingual Keyword Response Matrix ── */
+function getKeywordResponse(text: string, industry: string, lang: "ar" | "en"): string | null {
+  const lower = text.toLowerCase();
+  const indLower = industry.toLowerCase();
+
+  interface KeywordEntry {
+    keywords: string[];
+    industryResponses: Record<string, { en: string; ar: string }>;
+    defaultResponse: { en: string; ar: string };
+  }
+
+  const matrix: KeywordEntry[] = [
+    {
+      keywords: ["pricing", "price", "cost", "سعر", "أسعار", "تكلفة"],
+      industryResponses: {
+        "real estate": {
+          en: "Our real estate packages start at $99/mo with property listing management, virtual tours, and lead capture. Enterprise plans include CRM integration. Want a custom quote?",
+          ar: "تبدأ باقات العقارات لدينا من ٩٩ دولار شهريًا وتشمل إدارة قوائم العقارات والجولات الافتراضية والتقاط العملاء. هل تريد عرض سعر مخصص؟",
+        },
+        ecommerce: {
+          en: "E-commerce plans start at $79/mo with unlimited products, payment gateway, and inventory management. Growing businesses love our $149/mo plan with AI recommendations.",
+          ar: "تبدأ خطط التجارة الإلكترونية من ٧٩ دولار شهريًا مع منتجات غير محدودة وبوابة دفع وإدارة المخزون. هل تريد معرفة المزيد؟",
+        },
+      },
+      defaultResponse: {
+        en: "Our plans start at $49/mo for startups. Enterprise plans are fully customized. Want me to connect you with our sales team?",
+        ar: "تبدأ خططنا من ٤٩ دولار شهريًا للشركات الناشئة. الخطط المؤسسية مخصصة بالكامل. هل تريد التواصل مع فريق المبيعات؟",
+      },
+    },
+    {
+      keywords: ["features", "feature", "خدمات", "خدمة", "ميزات"],
+      industryResponses: {
+        "real estate": {
+          en: "Key features for real estate: Interactive property maps, virtual 3D tours, mortgage calculators, lead capture forms, and automated follow-up emails. Which interests you?",
+          ar: "الميزات الرئيسية للعقارات: خرائط تفاعلية، جولات افتراضية ثلاثية الأبعاد، حاسبات الرهن العقاري، ونماذج التقاط العملاء. أيها يهمك؟",
+        },
+        ecommerce: {
+          en: "E-commerce features include: Product catalog with filters, shopping cart, secure checkout, order tracking, customer reviews, and AI product recommendations.",
+          ar: "ميزات التجارة الإلكترونية تشمل: كتالوج المنتجات مع المرشحات، عربة التسوق، الدفع الآمن، تتبع الطلبات، وتوصيات المنتجات بالذكاء الاصطناعي.",
+        },
+        healthcare: {
+          en: "Healthcare features: Patient portal, appointment scheduling, telemedicine integration, health records dashboard, and HIPAA-compliant data storage.",
+          ar: "ميزات الرعاية الصحية: بوابة المرضى، جدولة المواعيد، التطبيب عن بُعد، لوحة السجلات الصحية، وتخزين البيانات المتوافق مع المعايير.",
+        },
+      },
+      defaultResponse: {
+        en: "We offer AI-powered analytics, automated workflows, CRM integration, and real-time dashboards. Which feature interests you most?",
+        ar: "نقدم تحليلات مدعومة بالذكاء الاصطناعي، وسير عمل آلي، وتكامل CRM، ولوحات معلومات في الوقت الفعلي. أي ميزة تهمك أكثر؟",
+      },
+    },
+    {
+      keywords: ["portfolio", "examples", "work", "أعمال", "نماذج", "معرض"],
+      industryResponses: {},
+      defaultResponse: {
+        en: "Check out our portfolio! We've built 150+ projects across industries — from AI-powered e-commerce stores to real estate platforms. Want to see examples in your niche?",
+        ar: "اطلع على معرض أعمالنا! لقد بنينا أكثر من ١٥٠ مشروعًا عبر صناعات مختلفة. هل تريد رؤية أمثلة في مجالك؟",
+      },
+    },
+    {
+      keywords: ["contact", "call", "تواصل", "اتصال", "تكلم"],
+      industryResponses: {},
+      defaultResponse: {
+        en: "You can reach our team directly via WhatsApp or schedule a call. We typically respond within 30 minutes during business hours!",
+        ar: "يمكنك التواصل مع فريقنا مباشرة عبر واتساب أو جدولة مكالمة. نرد عادة خلال ٣٠ دقيقة خلال ساعات العمل!",
+      },
+    },
+    {
+      keywords: ["demo", "عرض", "تجربة"],
+      industryResponses: {},
+      defaultResponse: {
+        en: "I'd love to show you a demo! Our team can set up a personalized walkthrough of your site. Shall I schedule one for you?",
+        ar: "يسعدني أن أعرض لك تجربة! يمكن لفريقنا إعداد جولة مخصصة لموقعك. هل أجدول واحدة لك؟",
+      },
+    },
+    {
+      keywords: ["help", "مساعدة", "مساعده"],
+      industryResponses: {},
+      defaultResponse: {
+        en: "I can help with product info, pricing, demos, feature comparison, and technical questions. Just ask!",
+        ar: "يمكنني المساعدة في معلومات المنتج والأسعار والعروض التوضيحية والمقارنة بين الميزات والأسئلة التقنية. فقط اسأل!",
+      },
+    },
+    {
+      keywords: ["موقع", "ويب", "website", "site"],
+      industryResponses: {
+        "real estate": {
+          en: "For real estate, we recommend a site with property listings, map integration, virtual tours, and a lead capture system. Want me to walk you through the options?",
+          ar: "للعقارات، ننصح بموقع يحتوي على قوائم العقارات وتكامل الخرائط والجولات الافتراضية ونظام التقاط العملاء. هل تريد أن أشرح لك الخيارات؟",
+        },
+        ecommerce: {
+          en: "For e-commerce, we build sites with product catalogs, secure payments, inventory management, and AI-powered recommendations. Which aspect matters most to you?",
+          ar: "للتجارة الإلكترونية، نبني مواقع بكتالوجات منتجات ومدفوعات آمنة وإدارة مخزون وتوصيات بالذكاء الاصطناعي. أي جانب يهمك أكثر؟",
+        },
+      },
+      defaultResponse: {
+        en: "We build custom AI-powered websites tailored to your industry. From design to deployment, we handle everything. What specific features do you need?",
+        ar: "نبني مواقع مخصصة مدعومة بالذكاء الاصطناعي ومصممة لمجالك. من التصميم إلى النشر، نتولى كل شيء. ما الميزات المحددة التي تحتاجها؟",
+      },
+    },
+  ];
+
+  for (const entry of matrix) {
+    for (const kw of entry.keywords) {
+      if (lower.includes(kw)) {
+        for (const [indKey, resp] of Object.entries(entry.industryResponses)) {
+          if (indLower.includes(indKey)) return resp[lang];
+        }
+        return entry.defaultResponse[lang];
+      }
+    }
+  }
+  return null;
+}
+
+function ChatbotPreview({ primaryColor, company, industry }: { primaryColor: string; company: string; industry: string }) {
+  const [chatLang, setChatLang] = useState<"ar" | "en">("en");
+  const [messages, setMessages] = useState<{ from: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!initialized.current) {
+      initialized.current = true;
+      setMessages([{ from: "bot", text: getIndustryWelcome(industry, company, "en") }]);
+    }
+  }, [industry, company]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const botResponses: Record<string, string> = {
-    pricing: "Our plans start at $49/mo for startups. Enterprise plans are fully customized. Want me to connect you with our sales team?",
-    demo: "I'd love to show you a demo! Our team can set up a personalized walkthrough. Shall I schedule one for you?",
-    features: "We offer AI-powered analytics, automated workflows, CRM integration, and real-time dashboards. Which interests you most?",
-    help: "I can help with product info, pricing, demos, and technical questions. Just ask!",
-  };
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -77,12 +244,16 @@ function ChatbotPreview({ primaryColor, company }: { primaryColor: string; compa
     setMessages((prev) => [...prev, { from: "user", text: userMsg }]);
     setInput("");
 
+    const detectedLang: "ar" | "en" = isArabic(userMsg) ? "ar" : "en";
+    if (detectedLang !== chatLang) setChatLang(detectedLang);
+
     setTimeout(() => {
-      const lower = userMsg.toLowerCase();
-      let response = "Thanks for your message! Our AI will analyze your request and provide the best solution. Is there anything specific you'd like to know?";
-      for (const [key, val] of Object.entries(botResponses)) {
-        if (lower.includes(key)) { response = val; break; }
-      }
+      const keywordResp = getKeywordResponse(userMsg, industry, detectedLang);
+      const response = keywordResp || (
+        detectedLang === "ar"
+          ? "شكرًا لرسالتك! سيقوم الذكاء الاصطناعي بتحليل طلبك وتقديم أفضل حل. هل هناك شيء محدد تود معرفته؟"
+          : "Thanks for your message! Our AI will analyze your request and provide the best solution. Is there anything specific you'd like to know?"
+      );
       setMessages((prev) => [...prev, { from: "bot", text: response }]);
     }, 800);
   };
@@ -93,14 +264,17 @@ function ChatbotPreview({ primaryColor, company }: { primaryColor: string; compa
         <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: primaryColor }}>
           <Bot size={16} className="text-white" />
         </div>
-        <div>
+        <div className="flex-1">
           <div className="text-sm font-semibold text-white">{company} AI Assistant</div>
           <div className="text-[10px] text-green-400 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Online
           </div>
         </div>
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold border" style={{ color: primaryColor, borderColor: `${primaryColor}40`, background: `${primaryColor}10` }}>
+          <Globe size={10} /> {chatLang === "ar" ? "عربي" : "EN"}
+        </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3" dir={chatLang === "ar" ? "rtl" : "ltr"}>
         {messages.map((msg, i) => (
           <motion.div
             key={i}
@@ -127,8 +301,9 @@ function ChatbotPreview({ primaryColor, company }: { primaryColor: string; compa
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Type a message... (try: pricing, demo, features)"
+          placeholder={chatLang === "ar" ? "اكتب رسالة... (جرب: سعر، خدمات، موقع)" : "Type a message... (try: pricing, features, portfolio)"}
           className="flex-1 bg-[#12121f] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-[#2563eb]"
+          dir="auto"
         />
         <button
           onClick={handleSend}
@@ -294,27 +469,62 @@ const LANGUAGES = [
 function MinimalTemplatePreview({ company, primaryColor, secondaryColor, isRTL }: { company: string; primaryColor: string; secondaryColor: string; isRTL: boolean }) {
   return (
     <div className="rounded-xl border border-white/10 bg-[#08080f] overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
+      {/* Nav bar */}
       <div className="px-6 py-3 flex items-center justify-between border-b border-white/5">
-        <span className="text-sm font-bold text-white">{company}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded" style={{ background: primaryColor }} />
+          <span className="text-sm font-bold text-white">{company}</span>
+        </div>
         <div className="flex gap-4 text-xs text-gray-500">
-          <span>{isRTL ? "الرئيسية" : "Home"}</span>
-          <span>{isRTL ? "الخدمات" : "Services"}</span>
-          <span>{isRTL ? "تواصل" : "Contact"}</span>
+          <span className="cursor-pointer hover:text-white transition-colors">{isRTL ? "الرئيسية" : "Home"}</span>
+          <span className="cursor-pointer hover:text-white transition-colors">{isRTL ? "الخدمات" : "Services"}</span>
+          <span className="cursor-pointer hover:text-white transition-colors">{isRTL ? "المعرض" : "Portfolio"}</span>
+          <span className="cursor-pointer hover:text-white transition-colors">{isRTL ? "تواصل" : "Contact"}</span>
         </div>
       </div>
-      <div className="px-8 py-12 text-center">
-        <div className="text-2xl font-bold text-white mb-2">{isRTL ? `${company} — مستقبل التكنولوجيا` : `${company} — Future of Technology`}</div>
-        <p className="text-sm text-gray-400 mb-6 max-w-md mx-auto">{isRTL ? "حلول ذكية مدعومة بالذكاء الاصطناعي لتسريع نمو أعمالك" : "AI-powered solutions to accelerate your business growth"}</p>
-        <button className="px-6 py-2 rounded-lg text-white text-sm font-semibold" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
-          {isRTL ? "ابدأ الآن" : "Get Started"}
-        </button>
+      {/* Hero */}
+      <div className="px-8 py-14 text-center border-b border-white/5">
+        <div className="inline-block px-3 py-1 rounded-full text-[10px] font-semibold mb-4 border" style={{ color: primaryColor, borderColor: `${primaryColor}40`, background: `${primaryColor}08` }}>
+          {isRTL ? "✦ تصميم نظيف وبسيط" : "✦ Clean & Minimal Design"}
+        </div>
+        <div className="text-3xl font-bold text-white mb-3">{isRTL ? `${company} — مستقبل التكنولوجيا` : `${company} — Future of Technology`}</div>
+        <p className="text-sm text-gray-400 mb-6 max-w-lg mx-auto leading-relaxed">{isRTL ? "حلول ذكية مدعومة بالذكاء الاصطناعي لتسريع نمو أعمالك. نصمم تجارب رقمية استثنائية." : "AI-powered solutions to accelerate your business growth. We craft exceptional digital experiences with precision and elegance."}</p>
+        <div className="flex items-center justify-center gap-3">
+          <button className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-transform hover:scale-105" style={{ background: primaryColor }}>
+            {isRTL ? "ابدأ الآن" : "Get Started"}
+          </button>
+          <button className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-white/20 text-gray-300 hover:border-white/40 transition-colors">
+            {isRTL ? "شاهد العرض" : "Watch Demo"}
+          </button>
+        </div>
       </div>
-      <div className="px-8 py-6 border-t border-white/5 grid grid-cols-3 gap-4">
-        {(isRTL ? ["تحليلات ذكية", "أتمتة", "حماية"] : ["Smart Analytics", "Automation", "Security"]).map((f) => (
-          <div key={f} className="text-center p-3 rounded-lg border border-white/5">
-            <div className="text-xs text-gray-400">{f}</div>
-          </div>
-        ))}
+      {/* Features grid */}
+      <div className="px-8 py-8 border-b border-white/5">
+        <div className="text-center mb-6">
+          <div className="text-lg font-bold text-white mb-1">{isRTL ? "كل ما تحتاجه" : "Everything You Need"}</div>
+          <div className="text-xs text-gray-500">{isRTL ? "أدوات قوية لنمو أعمالك" : "Powerful tools to grow your business"}</div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {(isRTL
+            ? [{ t: "تحليلات ذكية", d: "رؤى فورية" }, { t: "أتمتة كاملة", d: "سير عمل آلي" }, { t: "حماية متقدمة", d: "تشفير شامل" }]
+            : [{ t: "Smart Analytics", d: "Real-time insights" }, { t: "Full Automation", d: "Automated workflows" }, { t: "Enterprise Security", d: "End-to-end encryption" }]
+          ).map((f) => (
+            <div key={f.t} className="text-center p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors bg-[#0a0a16]">
+              <div className="w-8 h-8 rounded-lg mx-auto mb-3 flex items-center justify-center" style={{ background: `${primaryColor}15` }}>
+                <Zap size={14} style={{ color: primaryColor }} />
+              </div>
+              <div className="text-sm font-semibold text-white mb-1">{f.t}</div>
+              <div className="text-[10px] text-gray-500">{f.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* CTA footer */}
+      <div className="px-8 py-6 text-center" style={{ background: `${primaryColor}06` }}>
+        <div className="text-sm text-gray-400 mb-3">{isRTL ? "جاهز للبدء؟" : "Ready to get started?"}</div>
+        <button className="px-8 py-2 rounded-full text-white text-xs font-semibold" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+          {isRTL ? "تواصل معنا" : "Contact Us"}
+        </button>
       </div>
     </div>
   );
@@ -323,27 +533,66 @@ function MinimalTemplatePreview({ company, primaryColor, secondaryColor, isRTL }
 function DynamicTemplatePreview({ company, primaryColor, secondaryColor, accentColor, isRTL }: { company: string; primaryColor: string; secondaryColor: string; accentColor: string; isRTL: boolean }) {
   return (
     <div className="rounded-xl border border-white/10 bg-[#06060c] overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="relative px-8 py-14 text-center overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{ background: `radial-gradient(ellipse at center, ${primaryColor}, transparent 70%)` }} />
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold mb-4 border" style={{ color: accentColor, borderColor: `${accentColor}40`, background: `${accentColor}10` }}>
-            <Sparkles size={10} /> {isRTL ? "تجربة تفاعلية" : "Interactive Experience"}
+      {/* Nav with gradient line */}
+      <div className="relative">
+        <div className="h-[2px]" style={{ background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor}, ${accentColor})` }} />
+        <div className="px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }} />
+            <span className="text-sm font-bold text-white">{company}</span>
           </div>
-          <div className="text-2xl font-black mb-2" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor}, ${accentColor})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            {company}
+          <div className="flex gap-4 text-xs text-gray-500">
+            <span>{isRTL ? "استكشف" : "Explore"}</span>
+            <span>{isRTL ? "المنتجات" : "Products"}</span>
+            <span>{isRTL ? "الأسعار" : "Pricing"}</span>
           </div>
-          <p className="text-sm text-gray-400">{isRTL ? "تكنولوجيا الجيل القادم" : "Next-generation technology"}</p>
         </div>
       </div>
-      <div className="px-8 py-6 grid grid-cols-2 gap-3 border-t border-white/5">
-        {(isRTL ? ["معالجة ذكية", "تحليل تنبؤي", "نشر عالمي", "أتمتة AI"] : ["Neural Processing", "Predictive Analytics", "Global Deploy", "AI Automation"]).map((s, i) => (
-          <div key={s} className="p-3 rounded-lg border border-white/5 bg-[#0a0a16]">
-            <div className="w-6 h-6 rounded mb-2 flex items-center justify-center" style={{ background: `${i % 2 === 0 ? primaryColor : secondaryColor}20` }}>
-              <Zap size={12} style={{ color: i % 2 === 0 ? primaryColor : secondaryColor }} />
-            </div>
-            <div className="text-xs text-gray-400">{s}</div>
+      {/* Hero with dynamic gradient background */}
+      <div className="relative px-8 py-16 text-center overflow-hidden border-b border-white/5">
+        <div className="absolute inset-0 opacity-[0.07]" style={{ background: `radial-gradient(ellipse at 30% 50%, ${primaryColor}, transparent 60%), radial-gradient(ellipse at 70% 50%, ${secondaryColor}, transparent 60%)` }} />
+        <div className="absolute top-4 left-4 w-24 h-24 rounded-full opacity-10 blur-2xl" style={{ background: primaryColor }} />
+        <div className="absolute bottom-4 right-4 w-32 h-32 rounded-full opacity-10 blur-2xl" style={{ background: secondaryColor }} />
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold mb-5 border" style={{ color: accentColor, borderColor: `${accentColor}40`, background: `${accentColor}10` }}>
+            <Sparkles size={10} /> {isRTL ? "✨ تجربة تفاعلية غامرة" : "✨ Immersive Interactive Experience"}
+          </div>
+          <div className="text-4xl font-black mb-3" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor}, ${accentColor})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            {company}
+          </div>
+          <p className="text-sm text-gray-400 max-w-md mx-auto mb-6">{isRTL ? "تكنولوجيا الجيل القادم — تجربة مستخدم لا تُنسى" : "Next-generation technology — unforgettable user experience"}</p>
+          <button className="px-8 py-3 rounded-full text-white text-sm font-bold transition-transform hover:scale-105" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`, boxShadow: `0 0 30px ${primaryColor}30` }}>
+            {isRTL ? "🚀 ابدأ الرحلة" : "🚀 Start Your Journey"}
+          </button>
+        </div>
+      </div>
+      {/* Stats bar */}
+      <div className="grid grid-cols-4 border-b border-white/5">
+        {[{ v: "10K+", l: isRTL ? "مستخدم" : "Users" }, { v: "99.9%", l: isRTL ? "استقرار" : "Uptime" }, { v: "<50ms", l: isRTL ? "استجابة" : "Latency" }, { v: "24/7", l: isRTL ? "دعم" : "Support" }].map((s, i) => (
+          <div key={s.v} className="py-4 text-center border-r border-white/5 last:border-r-0">
+            <div className="text-lg font-bold" style={{ color: [primaryColor, secondaryColor, accentColor, primaryColor][i] }}>{s.v}</div>
+            <div className="text-[10px] text-gray-500">{s.l}</div>
           </div>
         ))}
+      </div>
+      {/* Feature cards */}
+      <div className="px-6 py-6 grid grid-cols-2 gap-3">
+        {(isRTL
+          ? [{ t: "معالجة ذكية", d: "شبكات عصبية متقدمة" }, { t: "تحليل تنبؤي", d: "توقعات دقيقة بالـ AI" }, { t: "نشر عالمي", d: "خوادم في ٤٠+ دولة" }, { t: "أتمتة AI", d: "سير عمل ذكي" }]
+          : [{ t: "Neural Processing", d: "Advanced neural networks" }, { t: "Predictive Analytics", d: "AI-powered forecasting" }, { t: "Global Deploy", d: "40+ country CDN" }, { t: "AI Automation", d: "Smart workflows" }]
+        ).map((s, i) => (
+          <div key={s.t} className="group p-4 rounded-xl border border-white/5 bg-[#0a0a16] hover:border-white/15 transition-all cursor-pointer">
+            <div className="w-8 h-8 rounded-lg mb-3 flex items-center justify-center transition-transform group-hover:scale-110" style={{ background: `${i % 2 === 0 ? primaryColor : secondaryColor}15` }}>
+              <Zap size={14} style={{ color: i % 2 === 0 ? primaryColor : secondaryColor }} />
+            </div>
+            <div className="text-sm font-semibold text-white mb-1">{s.t}</div>
+            <div className="text-[10px] text-gray-500">{s.d}</div>
+          </div>
+        ))}
+      </div>
+      {/* Bottom CTA */}
+      <div className="px-6 py-5 text-center border-t border-white/5" style={{ background: `linear-gradient(180deg, transparent, ${primaryColor}08)` }}>
+        <div className="text-xs text-gray-400">{isRTL ? "انضم لأكثر من ١٠ آلاف شركة" : "Join 10,000+ companies already growing"}</div>
       </div>
     </div>
   );
@@ -352,30 +601,77 @@ function DynamicTemplatePreview({ company, primaryColor, secondaryColor, accentC
 function CorporateTemplatePreview({ company, primaryColor, secondaryColor, isRTL }: { company: string; primaryColor: string; secondaryColor: string; isRTL: boolean }) {
   return (
     <div className="rounded-xl border border-white/10 bg-[#09090f] overflow-hidden" dir={isRTL ? "rtl" : "ltr"}>
+      {/* Corporate nav */}
       <div className="px-6 py-3 flex items-center justify-between border-b border-white/5" style={{ background: `${primaryColor}08` }}>
-        <span className="text-sm font-bold text-white">{company}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-sm flex items-center justify-center text-[8px] font-black text-white" style={{ background: primaryColor }}>
+            {company.charAt(0)}
+          </div>
+          <span className="text-sm font-bold text-white">{company}</span>
+        </div>
         <div className="flex gap-4 text-xs text-gray-500">
           <span>{isRTL ? "من نحن" : "About"}</span>
+          <span>{isRTL ? "الخدمات" : "Services"}</span>
           <span>{isRTL ? "الفريق" : "Team"}</span>
-          <span>{isRTL ? "المشاريع" : "Projects"}</span>
+          <span>{isRTL ? "المشاريع" : "Case Studies"}</span>
           <span>{isRTL ? "تواصل" : "Contact"}</span>
         </div>
       </div>
-      <div className="px-8 py-10 flex gap-6">
+      {/* Two-column hero */}
+      <div className="px-8 py-10 flex gap-8 border-b border-white/5">
         <div className="flex-1">
-          <div className="text-xl font-bold text-white mb-2">{isRTL ? "حلول مؤسسية" : "Enterprise Solutions"}</div>
-          <p className="text-xs text-gray-400 mb-4">{isRTL ? "بنية تحتية موثوقة لنمو أعمالك" : "Trusted infrastructure for business growth"}</p>
+          <div className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: primaryColor }}>
+            {isRTL ? "حلول مؤسسية" : "Enterprise Solutions"}
+          </div>
+          <div className="text-2xl font-bold text-white mb-3 leading-tight">
+            {isRTL ? `${company} — شريكك في التحول الرقمي` : `${company} — Your Digital Transformation Partner`}
+          </div>
+          <p className="text-xs text-gray-400 mb-5 leading-relaxed">
+            {isRTL ? "بنية تحتية موثوقة وحلول مخصصة لتسريع نمو مؤسستك مع أعلى معايير الأمان والأداء." : "Trusted infrastructure and custom solutions to accelerate enterprise growth with the highest standards of security and performance."}
+          </p>
           <div className="flex gap-2">
-            <button className="px-4 py-1.5 rounded text-white text-xs font-semibold" style={{ background: primaryColor }}>{isRTL ? "اطلب عرض" : "Request Demo"}</button>
-            <button className="px-4 py-1.5 rounded text-xs border border-white/20 text-gray-400">{isRTL ? "المزيد" : "Learn More"}</button>
+            <button className="px-5 py-2 rounded-lg text-white text-xs font-semibold transition-transform hover:scale-105" style={{ background: primaryColor }}>
+              {isRTL ? "اطلب عرض تقديمي" : "Request Demo"}
+            </button>
+            <button className="px-5 py-2 rounded-lg text-xs border border-white/20 text-gray-300 hover:border-white/40 transition-colors">
+              {isRTL ? "اعرف المزيد" : "Learn More"}
+            </button>
           </div>
         </div>
-        <div className="flex-1 grid grid-cols-2 gap-2">
-          {["99.9%", "24/7", "150+", "50ms"].map((v, i) => (
-            <div key={v} className="p-2 rounded border border-white/5 text-center">
-              <div className="text-lg font-bold" style={{ color: i % 2 === 0 ? primaryColor : secondaryColor }}>{v}</div>
-              <div className="text-[9px] text-gray-500">{["Uptime", "Support", "Clients", "Latency"][i]}</div>
+        {/* Stats grid */}
+        <div className="flex-1 grid grid-cols-2 gap-3">
+          {(isRTL
+            ? [{ v: "99.9%", l: "استقرار" }, { v: "24/7", l: "دعم فني" }, { v: "150+", l: "عميل مؤسسي" }, { v: "50ms", l: "زمن استجابة" }]
+            : [{ v: "99.9%", l: "Uptime SLA" }, { v: "24/7", l: "Premium Support" }, { v: "150+", l: "Enterprise Clients" }, { v: "50ms", l: "Avg Latency" }]
+          ).map((s, i) => (
+            <div key={s.v} className="p-3 rounded-lg border border-white/5 bg-[#0a0a16] text-center">
+              <div className="text-xl font-bold mb-0.5" style={{ color: i % 2 === 0 ? primaryColor : secondaryColor }}>{s.v}</div>
+              <div className="text-[10px] text-gray-500">{s.l}</div>
             </div>
+          ))}
+        </div>
+      </div>
+      {/* Services bar */}
+      <div className="px-8 py-6 border-b border-white/5">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">{isRTL ? "خدماتنا" : "Our Services"}</div>
+        <div className="grid grid-cols-3 gap-3">
+          {(isRTL
+            ? [{ t: "استشارات تقنية", d: "خبراء متخصصون" }, { t: "تطوير برمجيات", d: "حلول مخصصة" }, { t: "أمن سيبراني", d: "حماية شاملة" }]
+            : [{ t: "Tech Consulting", d: "Expert advisors" }, { t: "Software Dev", d: "Custom solutions" }, { t: "Cybersecurity", d: "Complete protection" }]
+          ).map((svc) => (
+            <div key={svc.t} className="p-3 rounded-lg border border-white/5 bg-[#0c0c18]">
+              <div className="text-sm font-semibold text-white mb-0.5">{svc.t}</div>
+              <div className="text-[10px] text-gray-500">{svc.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Trusted by */}
+      <div className="px-8 py-5 text-center">
+        <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">{isRTL ? "موثوق من قبل" : "Trusted By"}</div>
+        <div className="flex items-center justify-center gap-6">
+          {["Google", "Microsoft", "AWS", "Oracle"].map((b) => (
+            <span key={b} className="text-xs text-gray-600 font-medium">{b}</span>
           ))}
         </div>
       </div>
@@ -539,7 +835,7 @@ export default function ResultsPage() {
           {/* Feature Preview */}
           <AnimatePresence mode="wait">
             <motion.div key={activeFeature} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-              {activeFeature === "chatbot" && <ChatbotPreview primaryColor={primaryColor} company={company} />}
+              {activeFeature === "chatbot" && <ChatbotPreview primaryColor={primaryColor} company={company} industry={industry} />}
               {activeFeature === "analytics" && <AnalyticsPreview primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} />}
               {activeFeature === "automation" && <AutomationPreview primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} />}
               {activeFeature === "crm" && <CRMPreview primaryColor={primaryColor} secondaryColor={secondaryColor} accentColor={accentColor} />}
