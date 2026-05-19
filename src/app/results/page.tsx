@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -14,6 +15,19 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const MinimalistDemo = dynamic(
+  () => import("@/components/demos/MinimalistDemo"),
+  { ssr: false }
+);
+const DynamicShowcaseDemo = dynamic(
+  () => import("@/components/demos/DynamicShowcaseDemo"),
+  { ssr: false }
+);
+const CommerceEngineDemo = dynamic(
+  () => import("@/components/demos/CommerceEngineDemo"),
+  { ssr: false }
+);
+
 interface FormPayload {
   name: string;
   company: string;
@@ -25,15 +39,6 @@ interface FormPayload {
   secondaryColor: string;
   accentColor: string;
   aiPreference: string;
-}
-
-interface Demo {
-  id: string;
-  title: string;
-  description: string;
-  style: string;
-  icon: React.ReactNode;
-  gradient: string;
 }
 
 const AI_RECOMMENDATIONS: Record<string, string> = {
@@ -58,6 +63,30 @@ function getStoredFormData(): FormPayload | null {
     return null;
   }
 }
+
+const DEMO_META = [
+  {
+    id: "demo-1",
+    title: "Minimalist Pro",
+    subtitle: "Clean, conversion-focused layout with bold typography and strategic CTAs.",
+    icon: Layout,
+    style: "Minimalist",
+  },
+  {
+    id: "demo-2",
+    title: "Dynamic Showcase",
+    subtitle: "Interactive 3D experience with mouse-tracking animations and immersive storytelling.",
+    icon: Sparkles,
+    style: "Interactive",
+  },
+  {
+    id: "demo-3",
+    title: "Commerce Engine",
+    subtitle: "E-commerce optimized with product cards, smart search, and frictionless checkout.",
+    icon: ShoppingCart,
+    style: "E-Commerce",
+  },
+];
 
 export default function ResultsPage() {
   const [progress, setProgress] = useState(0);
@@ -84,48 +113,32 @@ export default function ResultsPage() {
     return () => clearInterval(interval);
   }, [analyzing]);
 
-  const demos: Demo[] = [
-    {
-      id: "demo-1",
-      title: "Minimalist Pro",
-      description:
-        "Clean, conversion-focused layout with bold typography and strategic CTAs. Perfect for premium brands.",
-      style: "Minimalist",
-      icon: <Layout size={32} />,
-      gradient: "from-[#2563eb] to-[#1d4ed8]",
-    },
-    {
-      id: "demo-2",
-      title: "Dynamic Showcase",
-      description:
-        "Interactive parallax design with animated sections and immersive storytelling. Ideal for engaging audiences.",
-      style: "Interactive",
-      icon: <Sparkles size={32} />,
-      gradient: "from-[#a855f7] to-[#7c3aed]",
-    },
-    {
-      id: "demo-3",
-      title: "Commerce Engine",
-      description:
-        "E-commerce optimized with AI product recommendations, smart search, and frictionless checkout.",
-      style: "E-Commerce",
-      icon: <ShoppingCart size={32} />,
-      gradient: "from-[#2563eb] to-[#a855f7]",
-    },
-  ];
+  const company = formData?.company || "Your Company";
+  const industry = formData?.industry || "Technology";
+  const primaryColor = formData?.primaryColor || "#2563eb";
+  const secondaryColor = formData?.secondaryColor || "#a855f7";
+  const accentColor = formData?.accentColor || "#10b981";
+
+  const demoProps = { company, industry, primaryColor, secondaryColor, accentColor };
 
   const getRecommendation = () => {
     if (!formData) return AI_RECOMMENDATIONS.default;
-    const industry = formData.industry || "";
+    const ind = formData.industry || "";
     for (const key of Object.keys(AI_RECOMMENDATIONS)) {
-      if (key !== "default" && industry.toLowerCase().includes(key.toLowerCase())) {
+      if (key !== "default" && ind.toLowerCase().includes(key.toLowerCase())) {
         return AI_RECOMMENDATIONS[key];
       }
     }
     return AI_RECOMMENDATIONS.default.replace(
       "your industry",
-      `the ${industry} industry`
+      `the ${ind} industry`
     );
+  };
+
+  const handleSelectDemo = (demoId: string) => {
+    setSelectedDemo(demoId);
+    setShowModal(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleFinalize = async () => {
@@ -156,6 +169,7 @@ export default function ResultsPage() {
     }
   };
 
+  /* ── Analyzing screen ── */
   if (analyzing) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
@@ -202,13 +216,13 @@ export default function ResultsPage() {
             {progress > 50 && (
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <Zap size={12} className="inline mr-1 text-[#a855f7]" />
-                Generating landing page variants...
+                Generating full landing page demos...
               </motion.p>
             )}
             {progress > 80 && (
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <Zap size={12} className="inline mr-1 text-[#2563eb]" />
-                Preparing AI recommendations...
+                Applying your brand colors...
               </motion.p>
             )}
           </div>
@@ -217,6 +231,7 @@ export default function ResultsPage() {
     );
   }
 
+  /* ── Finalized / success screen ── */
   if (finalized) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
@@ -247,66 +262,82 @@ export default function ResultsPage() {
     );
   }
 
+  /* ── Main demos view ── */
   return (
-    <div className="min-h-screen px-6 py-16">
+    <div className="min-h-screen px-4 md:px-6 py-12">
       <div className="max-w-6xl mx-auto">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
-            Your AI-Generated <span className="gradient-text">Demos</span>
+            Your AI-Generated{" "}
+            <span className="gradient-text">Landing Pages</span>
           </h1>
-          <p className="text-gray-400">
-            Select the design that best fits your vision. Our AI has tailored
-            these specifically for{" "}
-            <span className="text-[#2563eb]">
-              {formData?.company || "your company"}
-            </span>
-            .
+          <p className="text-gray-400 max-w-xl mx-auto">
+            Three fully-rendered page demos tailored for{" "}
+            <span style={{ color: primaryColor }}>{company}</span>
+            , using your brand palette. Select the one that fits your vision.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {demos.map((demo, i) => (
-            <motion.div
-              key={demo.id}
-              initial={{ opacity: 0, y: 30 }}
+        {/* Vertical demo stack */}
+        <div className="space-y-16">
+          {DEMO_META.map((meta, i) => (
+            <motion.section
+              key={meta.id}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15 }}
-              onClick={() => {
-                setSelectedDemo(demo.id);
-                setShowModal(true);
-              }}
-              className={`glow-border rounded-2xl bg-[#0a0a14] overflow-hidden cursor-pointer transition-all hover:scale-[1.02] ${
-                selectedDemo === demo.id
-                  ? "ring-2 ring-[#2563eb] shadow-[0_0_30px_rgba(37,99,235,0.2)]"
-                  : ""
-              }`}
+              transition={{ delay: i * 0.2 }}
             >
-              <div
-                className={`h-40 bg-gradient-to-br ${demo.gradient} flex items-center justify-center text-white/80`}
-              >
-                {demo.icon}
-              </div>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-white">
-                    {demo.title}
-                  </h3>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#2563eb]/10 text-[#2563eb]">
-                    {demo.style}
-                  </span>
+              {/* Demo label */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}20, ${secondaryColor}20)`,
+                    }}
+                  >
+                    <meta.icon size={20} style={{ color: primaryColor }} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">
+                      {meta.title}
+                    </h2>
+                    <p className="text-xs text-gray-500">{meta.subtitle}</p>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-400">{demo.description}</p>
+                <button
+                  onClick={() => handleSelectDemo(meta.id)}
+                  className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                    selectedDemo === meta.id
+                      ? "ring-2 ring-white shadow-lg"
+                      : "hover:shadow-[0_0_20px_rgba(37,99,235,0.2)]"
+                  }`}
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    color: "white",
+                  }}
+                >
+                  Select This Demo
+                </button>
               </div>
-            </motion.div>
+
+              {/* Full demo page render */}
+              <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
+                {meta.id === "demo-1" && <MinimalistDemo {...demoProps} />}
+                {meta.id === "demo-2" && <DynamicShowcaseDemo {...demoProps} />}
+                {meta.id === "demo-3" && <CommerceEngineDemo {...demoProps} />}
+              </div>
+            </motion.section>
           ))}
         </div>
       </div>
 
-      {/* Modal */}
+      {/* ── Modal ── */}
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -328,7 +359,13 @@ export default function ResultsPage() {
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-[#2563eb] to-[#a855f7] flex items-center justify-center">
                     <BrainCircuit size={20} className="text-white" />
                   </div>
-                  <h3 className="text-xl font-bold">AI Recommendation</h3>
+                  <div>
+                    <h3 className="text-xl font-bold">AI Recommendation</h3>
+                    <p className="text-xs text-gray-500">
+                      Selected:{" "}
+                      {DEMO_META.find((d) => d.id === selectedDemo)?.title}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
