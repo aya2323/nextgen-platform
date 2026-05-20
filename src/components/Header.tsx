@@ -6,7 +6,7 @@ import { Menu, X, Zap } from "lucide-react";
 
 function LogoMark() {
   return (
-    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(37,99,235,0.3)]">
+    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(37,99,235,0.3)]">
       <Zap size={22} className="text-white" />
     </div>
   );
@@ -16,7 +16,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#2563eb]/20 bg-[#05050a]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 glass border-b border-[#2563eb]/10">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark />
@@ -29,21 +29,18 @@ export default function Header() {
           <Link href="/" className="hover:text-[#2563eb] transition-colors">
             Home
           </Link>
-          <Link
-            href="/#services"
-            className="hover:text-[#2563eb] transition-colors"
-          >
+          <Link href="/#services" className="hover:text-[#2563eb] transition-colors">
             Services
           </Link>
-          <Link
-            href="/#portfolio"
-            className="hover:text-[#2563eb] transition-colors"
-          >
+          <Link href="/#pricing" className="hover:text-[#2563eb] transition-colors">
+            Pricing
+          </Link>
+          <Link href="/#portfolio" className="hover:text-[#2563eb] transition-colors">
             Portfolio
           </Link>
           <Link
             href="/builder"
-            className="rounded-lg bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-5 py-2.5 text-white font-semibold transition-all hover:shadow-[0_0_25px_rgba(37,99,235,0.4)] hover:scale-105"
+            className="rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-5 py-2.5 text-white font-semibold transition-all hover:shadow-[0_0_25px_rgba(37,99,235,0.4)] hover:scale-105"
           >
             Start Your Project
           </Link>
@@ -59,32 +56,23 @@ export default function Header() {
       </div>
 
       {open && (
-        <nav className="md:hidden border-t border-[#2563eb]/20 bg-[#05050a]/95 backdrop-blur-xl px-6 py-4 flex flex-col gap-4 text-sm font-medium">
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            className="hover:text-[#2563eb] transition-colors"
-          >
+        <nav className="md:hidden glass border-t border-[#2563eb]/10 px-6 py-4 flex flex-col gap-4 text-sm font-medium">
+          <Link href="/" onClick={() => setOpen(false)} className="hover:text-[#2563eb] transition-colors">
             Home
           </Link>
-          <Link
-            href="/#services"
-            onClick={() => setOpen(false)}
-            className="hover:text-[#2563eb] transition-colors"
-          >
+          <Link href="/#services" onClick={() => setOpen(false)} className="hover:text-[#2563eb] transition-colors">
             Services
           </Link>
-          <Link
-            href="/#portfolio"
-            onClick={() => setOpen(false)}
-            className="hover:text-[#2563eb] transition-colors"
-          >
+          <Link href="/#pricing" onClick={() => setOpen(false)} className="hover:text-[#2563eb] transition-colors">
+            Pricing
+          </Link>
+          <Link href="/#portfolio" onClick={() => setOpen(false)} className="hover:text-[#2563eb] transition-colors">
             Portfolio
           </Link>
           <Link
             href="/builder"
             onClick={() => setOpen(false)}
-            className="rounded-lg bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-5 py-2.5 text-white font-semibold text-center"
+            className="rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-5 py-2.5 text-white font-semibold text-center"
           >
             Start Your Project
           </Link>

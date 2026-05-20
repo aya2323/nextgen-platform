@@ -33,6 +33,9 @@ interface FormPayload {
   secondaryColor: string;
   accentColor: string;
   aiPreference: string;
+  hasWebsite?: boolean | null;
+  existingUrl?: string;
+  upgradeFeatures?: string[];
 }
 
 function getStoredFormData(): FormPayload | null {
@@ -679,6 +682,15 @@ function CorporateTemplatePreview({ company, primaryColor, secondaryColor, isRTL
   );
 }
 
+/* ── Upgrade Feature Labels ── */
+const UPGRADE_LABELS: Record<string, { label: string; desc: string; recommendation: string }> = {
+  chatbot: { label: "AI Chatbot", desc: "Smart conversational assistant", recommendation: "Your current site needs a localized Arabic AI chatbot to engage visitors 24/7 and convert them into customers." },
+  booking: { label: "Booking Automation", desc: "Auto-schedule appointments", recommendation: "Automate your booking flow — reduce no-shows by 40% with AI-powered scheduling and reminders." },
+  rebrand: { label: "Future Brand Refresh", desc: "Full UI/UX modernization", recommendation: "We can transform your UI into an interactive customer-magnet with futuristic animations and premium design." },
+  multilang: { label: "Multi-language Support", desc: "Arabic, English & more", recommendation: "Adding Arabic RTL support and multi-language detection will open your site to 400M+ Arabic speakers." },
+  analytics: { label: "AI Analytics", desc: "Traffic & conversion insights", recommendation: "AI-powered analytics will reveal hidden revenue opportunities and optimize your conversion funnel automatically." },
+};
+
 /* ── Main Page ── */
 export default function ResultsPage() {
   const [progress, setProgress] = useState(0);
@@ -690,6 +702,8 @@ export default function ResultsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState("minimal");
   const [selectedLang, setSelectedLang] = useState("en");
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+
+  const isPathB = formData?.hasWebsite === true;
 
   useEffect(() => {
     if (!analyzing) return;
@@ -713,6 +727,8 @@ export default function ResultsPage() {
   const secondaryColor = formData?.secondaryColor || "#a855f7";
   const accentColor = formData?.accentColor || "#10b981";
   const selectedFeatures = formData?.features || [];
+  const upgradeFeatures = formData?.upgradeFeatures || [];
+  const existingUrl = formData?.existingUrl || "";
   const isRTL = selectedLang === "ar";
   const langLabel = LANGUAGES.find((l) => l.code === selectedLang)?.label || "English";
   const templateLabel = TEMPLATES.find((t) => t.id === selectedTemplate)?.name || "Minimalist Pro";
@@ -783,12 +799,168 @@ export default function ResultsPage() {
     );
   }
 
-  /* ── Main Configurator ── */
+  /* ── Path B: AI Audit Dashboard ── */
+  if (isPathB) {
+    const buildPathBWhatsApp = () => {
+      const upgradeLabels = upgradeFeatures.map((id) => UPGRADE_LABELS[id]?.label || id).join(", ");
+      const lines = [
+        `\u{1F680} *NEXTGEN AI Upgrade Order*`,
+        ``,
+        `\u{1F464} *Client:* ${clientName}`,
+        `\u{1F3E2} *Company:* ${company}`,
+        `\u{1F4F1} *WhatsApp:* ${formData?.whatsapp || "N/A"}`,
+        `\u{1F310} *Current Website:* ${existingUrl}`,
+        ``,
+        `\u{2705} *Selected AI Upgrades:* ${upgradeLabels || "None"}`,
+        ``,
+        `\u{1F4C5} *Submitted:* ${new Date().toLocaleString()}`,
+      ];
+      return `https://wa.me/201281835834?text=${encodeURIComponent(lines.join("\n"))}`;
+    };
+
+    return (
+      <div className="min-h-screen px-4 md:px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#a855f7]/20 text-[#a855f7] mb-4">
+              <Sparkles size={12} /> AI Audit & Mockup
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">
+              AI Audit for <span className="gradient-text">{company}</span>
+            </h1>
+            <p className="text-gray-400 max-w-xl mx-auto">
+              Based on your current website at{" "}
+              <span className="text-[#2563eb] font-medium">{existingUrl}</span>,
+              here&apos;s how we can upgrade it.
+            </p>
+          </motion.div>
+
+          {/* Audit Score Card */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass rounded-2xl p-8 mb-8 border border-[#2563eb]/10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <BarChart3 size={20} className="text-[#2563eb]" /> Site Analysis Overview
+              </h2>
+              <span className="text-xs text-gray-500">Powered by NEXTGEN AI</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Performance", score: 72, color: "#f59e0b" },
+                { label: "SEO", score: 58, color: "#ef4444" },
+                { label: "Accessibility", score: 85, color: "#10b981" },
+                { label: "AI Readiness", score: 34, color: "#ef4444" },
+              ].map((metric) => (
+                <div key={metric.label} className="glass rounded-xl p-4 text-center border border-white/5">
+                  <div className="text-3xl font-bold mb-1" style={{ color: metric.color }}>{metric.score}</div>
+                  <div className="text-xs text-gray-400">{metric.label}</div>
+                  <div className="mt-2 w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${metric.score}%` }}
+                      transition={{ delay: 0.5, duration: 0.8 }}
+                      className="h-full rounded-full"
+                      style={{ background: metric.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Personalized Recommendations */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <Sparkles size={20} className="text-[#a855f7]" /> Personalized AI Recommendations
+            </h2>
+            <div className="space-y-4">
+              {upgradeFeatures.map((id, i) => {
+                const info = UPGRADE_LABELS[id];
+                if (!info) return null;
+                return (
+                  <motion.div
+                    key={id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                    className="glass rounded-xl p-6 border border-[#a855f7]/10 bento-glow"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center shrink-0">
+                        <Check size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-1">{info.label}</h3>
+                        <p className="text-sm text-gray-300 leading-relaxed">{info.recommendation}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              {upgradeFeatures.length === 0 && (
+                <div className="glass rounded-xl p-6 text-center text-gray-400">
+                  No upgrade features were selected. Go back to the builder to choose AI features.
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Submit */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass rounded-2xl p-8 border border-[#2563eb]/10">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+              <Send size={20} className="text-[#2563eb]" />
+              Ready to Upgrade?
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              <div className="p-4 rounded-xl border border-white/5 bg-[#12121f]">
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Client Details</div>
+                <div className="space-y-1 text-sm">
+                  <div className="text-gray-300"><span className="text-gray-500">Name:</span> {clientName}</div>
+                  <div className="text-gray-300"><span className="text-gray-500">Company:</span> {company}</div>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl border border-white/5 bg-[#12121f]">
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Website</div>
+                <div className="text-sm text-[#2563eb] break-all">{existingUrl}</div>
+              </div>
+              <div className="md:col-span-2 p-4 rounded-xl border border-white/5 bg-[#12121f]">
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Selected AI Upgrades</div>
+                <div className="flex flex-wrap gap-2">
+                  {upgradeFeatures.map((id) => (
+                    <span key={id} className="px-3 py-1 rounded-full text-xs font-medium border border-[#a855f7]/30 bg-[#a855f7]/10 text-[#a855f7]">
+                      {UPGRADE_LABELS[id]?.label || id}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <a
+              href={buildPathBWhatsApp()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-3 rounded-xl px-8 py-4 font-bold text-white text-lg transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(37,211,102,0.3)]"
+              style={{ background: "linear-gradient(135deg, #25d366, #128C7E)" }}
+            >
+              <MessageCircle size={24} />
+              Submit Upgrade Order via WhatsApp
+            </a>
+            <p className="text-center text-xs text-gray-500 mt-3">
+              Your upgrade details will be sent directly to our team on WhatsApp
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Main Configurator (Path A) ── */
   return (
     <div className="min-h-screen px-4 md:px-6 py-12">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-4">
+            <Sparkles size={12} /> Site Configurator
+          </div>
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
             Configure Your <span className="gradient-text">AI-Powered Site</span>
           </h1>
@@ -973,7 +1145,7 @@ export default function ResultsPage() {
 
         {/* ─── Section 4: Configuration Summary & Submit ─── */}
         <motion.section initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <div className="glow-border rounded-2xl bg-[#0a0a14] p-8">
+          <div className="glass rounded-2xl p-8 border border-[#2563eb]/10">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
               <Send size={20} style={{ color: primaryColor }} />
               Your Configuration Summary
