@@ -1,524 +1,759 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { useEffect, useMemo, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import Lenis from "lenis";
 import {
-  Bot,
   BrainCircuit,
-  ArrowRight,
-  TrendingUp,
-  ExternalLink,
+  Globe,
+  Cpu,
+  Sparkles,
   BarChart3,
   Shield,
-  Globe,
-  Sparkles,
-  Rocket,
-  Check,
-  Star,
-  Clock,
-  Cpu,
+  TrendingUp,
+  ArrowRight,
   Layers,
-  MessageCircle,
+  Bot,
+  Network,
+  Activity,
 } from "lucide-react";
 
-const BrainScene = dynamic(() => import("@/components/BrainScene"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[500px] md:h-[600px] flex items-center justify-center">
-      <div className="w-16 h-16 border-2 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
-    </div>
-  ),
-});
+/* ────────────────────────────────────────────────────────────
+   Deterministic PRNG — identical on server + client
+   ──────────────────────────────────────────────────────────── */
+function srand(seed: number): number {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
-};
+/* ────────────────────────────────────────────────────────────
+   Star field generation
+   ──────────────────────────────────────────────────────────── */
+interface StarData {
+  x: number;
+  y: number;
+  size: number;
+  animDuration: number;
+  animDelay: number;
+}
 
-const scaleUp = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: "easeOut" as const } },
-};
-
-const stagger = {
-  visible: { transition: { staggerChildren: 0.12 } },
-};
-
-export default function Home() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
+function generateStars(
+  count: number,
+  seedOffset: number,
+  sizeMin: number,
+  sizeMax: number,
+): StarData[] {
+  return Array.from({ length: count }, (_, i) => {
+    const s = i + seedOffset;
+    return {
+      x: srand(s * 13 + 1) * 100,
+      y: srand(s * 17 + 2) * 100,
+      size: srand(s * 7 + 3) * (sizeMax - sizeMin) + sizeMin,
+      animDuration: srand(s * 19 + 5) * 5 + 2,
+      animDelay: srand(s * 23 + 6) * 8,
+    };
   });
-  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Star Layer Renderer
+   ──────────────────────────────────────────────────────────── */
+function StarLayer({
+  stars,
+  driftAnimation,
+  colorTint,
+}: {
+  stars: StarData[];
+  driftAnimation: string;
+  colorTint: string;
+}) {
+  return (
+    <div className="absolute inset-0" style={{ animation: driftAnimation }}>
+      {stars.map((star, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            background: `radial-gradient(circle, ${colorTint} 0%, transparent 70%)`,
+            animation: `twinkle ${star.animDuration}s ${star.animDelay}s ease-in-out infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   Case Study Data
+   ──────────────────────────────────────────────────────────── */
+const CASE_STUDIES = [
+  {
+    image: "/istanbul.jpeg",
+    title: "Agent Istanbul",
+    subtitle: "Travel & Hospitality Platform",
+    link: "https://agent-istanbul.com",
+  },
+  {
+    image: "/nokhbat.jpeg",
+    title: "Nokhbat Academy",
+    subtitle: "E-Learning Platform",
+    link: "https://nokhbat.ayaxd.com",
+  },
+];
+
+/* ────────────────────────────────────────────────────────────
+   AI Capabilities (Layer 3)
+   ──────────────────────────────────────────────────────────── */
+const AI_CAPABILITIES = [
+  {
+    icon: Bot,
+    title: "AI Automations & Agents",
+    description:
+      "Intelligent chatbots, workflow automation, and autonomous AI agents that operate 24/7.",
+    gradient: "from-[#22d3ee]/10 to-[#2563eb]/10",
+    borderColor: "border-[#22d3ee]/15",
+    iconColor: "#22d3ee",
+  },
+  {
+    icon: Globe,
+    title: "Next-Gen Platforms",
+    description:
+      "Ultra-modern web platforms with real-time data, blazing performance, and immersive UI.",
+    gradient: "from-[#a855f7]/10 to-[#6366f1]/10",
+    borderColor: "border-[#a855f7]/15",
+    iconColor: "#a855f7",
+  },
+  {
+    icon: Layers,
+    title: "Immersive 3D Experiences",
+    description:
+      "Cinematic web experiences with Three.js, spatial animations, and interactive 3D worlds.",
+    gradient: "from-[#2563eb]/10 to-[#22d3ee]/10",
+    borderColor: "border-[#2563eb]/15",
+    iconColor: "#2563eb",
+  },
+];
+
+/* ────────────────────────────────────────────────────────────
+   Dashboard Stats (Layer 4)
+   ──────────────────────────────────────────────────────────── */
+const DASH_STATS = [
+  { label: "Active AI Agents", value: "1,247", icon: Bot, change: "+12.4%", color: "#22d3ee" },
+  { label: "Tasks Automated", value: "89.3K", icon: Activity, change: "+28.1%", color: "#a855f7" },
+  { label: "Revenue Generated", value: "$2.4M", icon: TrendingUp, change: "+34.7%", color: "#22d3ee" },
+  { label: "Uptime Score", value: "99.97%", icon: Shield, change: "+0.02%", color: "#10b981" },
+];
+
+const NETWORK_NODES = Array.from({ length: 12 }, (_, i) => ({
+  x: srand(i * 31 + 100) * 80 + 10,
+  y: srand(i * 37 + 200) * 80 + 10,
+  size: srand(i * 41 + 300) * 6 + 3,
+  pulseDelay: srand(i * 43 + 400) * 4,
+}));
+
+/* ────────────────────────────────────────────────────────────
+   Home — Immersive 4-Layer Spatial Cinematic Experience
+   ──────────────────────────────────────────────────────────── */
+export default function Home() {
+  /* ── Lenis smooth scroll ── */
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.4,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+    return () => lenis.destroy();
+  }, []);
+
+  /* ── Scroll proxy ── */
+  const scrollProxyRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: scrollProxyRef,
+    offset: ["start start", "end end"],
+  });
+
+  /* ── Layer 1: Waving Oracle (0.0 → 0.4) ── */
+  const headScale = useTransform(scrollYProgress, [0, 0.4], [1, 35]);
+  const headOpacity = useTransform(scrollYProgress, [0, 0.28, 0.4], [1, 1, 0]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
+  const textY = useTransform(scrollYProgress, [0, 0.06], [0, -80]);
+  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.03], [1, 0]);
+
+  /* ── Layer 2: Orbiting Case Studies (0.1 → 0.45) ── */
+  const cardOpacity = useTransform(scrollYProgress, [0.08, 0.14, 0.38, 0.46], [0, 1, 1, 0]);
+  const cardScale = useTransform(scrollYProgress, [0.08, 0.14, 0.38, 0.46], [0.4, 1, 1, 0.3]);
+  const card1X = useTransform(scrollYProgress, (v: number) => Math.cos(v * Math.PI * 5) * 340);
+  const card1Y = useTransform(scrollYProgress, (v: number) => Math.sin(v * Math.PI * 5) * 120);
+  const card1Z = useTransform(scrollYProgress, (v: number) => Math.sin(v * Math.PI * 5) * 100);
+  const card2X = useTransform(scrollYProgress, (v: number) => Math.cos(v * Math.PI * 5 + Math.PI) * 340);
+  const card2Y = useTransform(scrollYProgress, (v: number) => Math.sin(v * Math.PI * 5 + Math.PI) * 120);
+  const card2Z = useTransform(scrollYProgress, (v: number) => Math.sin(v * Math.PI * 5 + Math.PI) * 100);
+
+  /* ── Layer 3: AI Capabilities (0.35 → 0.65) ── */
+  const capOpacity = useTransform(scrollYProgress, [0.33, 0.4, 0.58, 0.66], [0, 1, 1, 0]);
+  const cap1Scale = useTransform(scrollYProgress, [0.33, 0.42], [0, 1]);
+  const cap2Scale = useTransform(scrollYProgress, [0.36, 0.45], [0, 1]);
+  const cap3Scale = useTransform(scrollYProgress, [0.39, 0.48], [0, 1]);
+  const cap1X = useTransform(scrollYProgress, (v: number) => Math.sin((v - 0.35) * Math.PI * 3) * -180);
+  const cap2Y = useTransform(scrollYProgress, (v: number) => Math.cos((v - 0.38) * Math.PI * 2.5) * 60);
+  const cap3X = useTransform(scrollYProgress, (v: number) => Math.sin((v - 0.35) * Math.PI * 3) * 180);
+
+  /* ── Layer 4: Dashboard + CTA (0.6 → 1.0) ── */
+  const dashOpacity = useTransform(scrollYProgress, [0.58, 0.68], [0, 1]);
+  const dashScale = useTransform(scrollYProgress, [0.58, 0.72], [0.7, 1]);
+
+  /* ── Nebula ── */
+  const nebulaScale = useTransform(scrollYProgress, [0, 1], [1, 1.6]);
+
+  /* ── Stars ── */
+  const farStars = useMemo(() => generateStars(80, 0, 0.5, 1.5), []);
+  const midStars = useMemo(() => generateStars(50, 500, 1.2, 2.5), []);
+  const nearStars = useMemo(() => generateStars(18, 1000, 2.2, 3.8), []);
+
+  const cardTransforms = [
+    { x: card1X, y: card1Y, z: card1Z },
+    { x: card2X, y: card2Y, z: card2Z },
+  ];
+  const capScales = [cap1Scale, cap2Scale, cap3Scale];
+  const capXOffsets = [cap1X, cap2Y, cap3X];
 
   return (
-    <div className="overflow-hidden">
-      {/* ─── HERO ─── */}
-      <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center px-6">
-        {/* Ambient background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.1)_0%,_transparent_60%)]" />
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#2563eb]/5 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-[#a855f7]/5 blur-[100px] pointer-events-none" />
+    <>
+      <style>{`
+        @keyframes twinkle {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.06; }
+        }
+        @keyframes drift-far {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(5px, 8px); }
+          66% { transform: translate(-3px, 3px); }
+        }
+        @keyframes drift-mid {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(-10px, 6px); }
+          66% { transform: translate(7px, -5px); }
+        }
+        @keyframes drift-near {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(14px, -10px); }
+          66% { transform: translate(-8px, 12px); }
+        }
+        @keyframes scroll-bounce {
+          0%, 100% { transform: translateY(0); opacity: 0.5; }
+          50% { transform: translateY(10px); opacity: 1; }
+        }
+        @keyframes eye-pulse {
+          0%, 100% { box-shadow: 0 0 16px rgba(34,211,238,0.8), 0 0 50px rgba(37,99,235,0.35); }
+          50% { box-shadow: 0 0 26px rgba(34,211,238,1), 0 0 75px rgba(37,99,235,0.55); }
+        }
+        @keyframes node-pulse {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.4); }
+        }
+        @keyframes data-flow {
+          0% { stroke-dashoffset: 200; }
+          100% { stroke-dashoffset: 0; }
+        }
+        @keyframes bar-grow {
+          0% { transform: scaleY(0.2); }
+          100% { transform: scaleY(1); }
+        }
+        @keyframes hand-neon-pulse {
+          0%, 100% { filter: drop-shadow(0 0 8px rgba(34,211,238,0.3)); }
+          50% { filter: drop-shadow(0 0 22px rgba(34,211,238,0.6)) drop-shadow(0 0 45px rgba(37,99,235,0.25)); }
+        }
+      `}</style>
 
-        <motion.div style={{ opacity: heroOpacity, scale: heroScale }}>
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-            className="relative z-10 text-center max-w-5xl mx-auto"
-          >
-            {/* Badge */}
-            <motion.div variants={fadeUp} className="mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb]">
-                <Sparkles size={12} /> AI-Powered Digital Engine
-              </span>
-            </motion.div>
+      {/* ── Scroll proxy ── */}
+      <div ref={scrollProxyRef} className="relative w-screen" style={{ height: "500vh" }}>
+        {/* ── Fixed visual layer ── */}
+        <div className="fixed inset-0 h-screen w-screen overflow-x-hidden" style={{ zIndex: 10 }}>
 
-            <motion.h1
-              variants={fadeUp}
-              className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight"
-            >
-              Build <span className="gradient-text">Intelligent Systems</span>
-              <br />
-              That <span className="gradient-text">Print Revenue</span> 24/7
-            </motion.h1>
-
-            <motion.p
-              variants={fadeUp}
-              className="mt-6 text-base md:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed"
-            >
-              NEXTGEN transforms standard websites into AI-powered profit engines.
-              We don&apos;t just build sites — we engineer revenue machines.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="mt-10 flex gap-4 justify-center flex-wrap">
-              <Link
-                href="/builder"
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-8 py-3.5 text-white font-semibold transition-all hover:shadow-[0_0_40px_rgba(37,99,235,0.5)] hover:scale-105"
-              >
-                Start Your Project
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <a
-                href="#services"
-                className="inline-flex items-center gap-2 rounded-xl glass px-8 py-3.5 text-white font-semibold hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all"
-              >
-                Explore Services
-              </a>
-            </motion.div>
-
-            {/* Social proof strip */}
-            <motion.div variants={fadeUp} className="mt-12 flex items-center justify-center gap-8 text-gray-500 text-xs">
-              <div className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> 4.9/5 Rating</div>
-              <div className="h-3 w-px bg-gray-700" />
-              <div>150+ Projects Delivered</div>
-              <div className="h-3 w-px bg-gray-700" />
-              <div className="flex items-center gap-1"><Globe size={12} /> 20+ Countries</div>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-
-        <BrainScene />
-
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#05050a] to-transparent" />
-      </section>
-
-      {/* ─── SERVICES BENTO GRID ─── */}
-      <section id="services" className="py-24 px-6 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[#2563eb]/40 to-transparent" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={stagger}
-            className="text-center mb-16"
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#a855f7]/20 text-[#a855f7] mb-4">
-                <Cpu size={12} /> Core Capabilities
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mt-4">
-              Everything Your Business <span className="gradient-text">Needs</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="mt-4 text-gray-400 max-w-2xl mx-auto">
-              AI-powered solutions engineered for maximum ROI. Each service is designed to compound your growth.
-            </motion.p>
-          </motion.div>
-
-          {/* Bento Grid */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            {/* Large card — spans 2 cols */}
+          {/* ─── Galactic Background ─── */}
+          <div className="absolute inset-0 overflow-hidden" style={{ background: "#05050a" }}>
             <motion.div
-              variants={scaleUp}
-              className="md:col-span-2 glass rounded-2xl p-8 group relative overflow-hidden bento-glow"
+              className="absolute"
+              style={{ inset: "-25%", scale: nebulaScale }}
+              animate={{ rotate: [0, 360] }}
+              transition={{ rotate: { duration: 180, repeat: Infinity, ease: "linear" } }}
             >
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#2563eb]/5 blur-[80px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="flex gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl glass flex items-center justify-center">
-                    <TrendingUp className="text-[#2563eb]" size={22} />
-                  </div>
-                  <div className="w-12 h-12 rounded-xl glass flex items-center justify-center">
-                    <BarChart3 className="text-[#a855f7]" size={22} />
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  Intelligent Web Transformation
-                </h3>
-                <p className="text-gray-400 mb-6 max-w-lg">
-                  CRO-optimized, blazing-fast websites that convert visitors into customers.
-                  Every pixel engineered for performance and profit.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {["CRO Optimization", "Speed Analytics", "A/B Testing", "Revenue Tracking"].map((tag) => (
-                    <span key={tag} className="text-[10px] px-3 py-1 rounded-full glass text-gray-300">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 55% at 48% 42%, rgba(34,211,238,0.07) 0%, transparent 68%)" }} />
+              <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 55% 70% at 28% 58%, rgba(168,85,247,0.06) 0%, transparent 55%)" }} />
+              <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 45% 45% at 72% 38%, rgba(37,99,235,0.05) 0%, transparent 50%)" }} />
+              <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 35% 30% at 58% 68%, rgba(168,85,247,0.035) 0%, transparent 45%)" }} />
             </motion.div>
+            <StarLayer stars={farStars} driftAnimation="drift-far 50s ease-in-out infinite" colorTint="rgba(200,215,255,0.85)" />
+            <StarLayer stars={midStars} driftAnimation="drift-mid 38s ease-in-out infinite" colorTint="rgba(180,200,255,0.8)" />
+            <StarLayer stars={nearStars} driftAnimation="drift-near 28s ease-in-out infinite" colorTint="rgba(255,255,255,0.95)" />
+          </div>
 
-            {/* Tall card */}
+          {/* ═══════════════════════════════════════════════════
+             LAYER 1: The Waving Cybernetic Oracle
+             ═══════════════════════════════════════════════════ */}
+          <div className="absolute inset-0 flex items-center justify-center" style={{ perspective: "1200px" }}>
             <motion.div
-              variants={scaleUp}
-              className="md:row-span-2 glass rounded-2xl p-8 group relative overflow-hidden bento-glow flex flex-col justify-between"
+              className="relative will-change-transform"
+              style={{ scale: headScale, opacity: headOpacity }}
             >
-              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-[#a855f7]/5 blur-[60px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl glass flex items-center justify-center mb-6">
-                  <BrainCircuit className="text-[#a855f7]" size={22} />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">Custom AI Integration</h3>
-                <p className="text-gray-400 mb-6">
-                  From chatbots to predictive analytics — we embed bespoke AI solutions directly
-                  into your business workflow for 24/7 automation.
-                </p>
-                <div className="space-y-3">
-                  {["Smart Chatbots", "Predictive Analytics", "Workflow Automation", "Custom ML Models"].map((item) => (
-                    <div key={item} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#a855f7]" /> {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-8 text-5xl font-bold gradient-text">24/7</div>
-            </motion.div>
+              {/* Studio lighting gradient */}
+              <div
+                className="absolute pointer-events-none blur-3xl opacity-25"
+                style={{
+                  inset: "-55%",
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle, rgba(34,211,238,0.5) 0%, rgba(37,99,235,0.35) 35%, rgba(168,85,247,0.2) 60%, transparent 80%)",
+                }}
+              />
 
-            {/* Two small cards */}
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-6 group bento-glow">
-              <div className="w-10 h-10 rounded-xl glass flex items-center justify-center mb-4">
-                <Shield className="text-[#2563eb]" size={18} />
-              </div>
-              <h4 className="text-lg font-bold text-white mb-2">Enterprise Security</h4>
-              <p className="text-sm text-gray-400">End-to-end encryption with SOC2 compliance and zero-trust architecture.</p>
-              <div className="mt-4 text-3xl font-bold text-[#2563eb]">99.9%</div>
-              <div className="text-xs text-gray-500">Uptime guaranteed</div>
-            </motion.div>
+              {/* Hi-Fi Robot Image */}
+              <Image
+                src="/robot-3d-hi.png"
+                alt="NEXTGEN Cybernetic Oracle"
+                width={700}
+                height={700}
+                priority
+                className="relative w-[48vmin] h-auto object-contain"
+                style={{
+                  filter: "drop-shadow(0 0 40px rgba(34,211,238,0.1)) drop-shadow(0 0 80px rgba(37,99,235,0.06))",
+                }}
+              />
 
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-6 group bento-glow">
-              <div className="w-10 h-10 rounded-xl glass flex items-center justify-center mb-4">
-                <Rocket className="text-[#a855f7]" size={18} />
-              </div>
-              <h4 className="text-lg font-bold text-white mb-2">Lightning Delivery</h4>
-              <p className="text-sm text-gray-400">From concept to launch in weeks, not months. Agile sprints with daily updates.</p>
-              <div className="mt-4 text-3xl font-bold text-[#a855f7]">&lt;2wk</div>
-              <div className="text-xs text-gray-500">Average delivery</div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── PRICING BENTO GRID ─── */}
-      <section id="pricing" className="py-24 px-6 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[#a855f7]/40 to-transparent" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={stagger}
-            className="text-center mb-16"
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-4">
-                <Layers size={12} /> Transparent Pricing
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mt-4">
-              Invest in Your <span className="gradient-text">Growth</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="mt-4 text-gray-400 max-w-2xl mx-auto">
-              Choose the package that fits your ambition. Every plan includes premium support and dedicated project management.
-            </motion.p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {/* AI Add-on */}
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-8 relative overflow-hidden bento-glow group">
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#2563eb]/5 blur-[60px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl glass flex items-center justify-center mb-6">
-                  <Bot className="text-[#2563eb]" size={22} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">AI Add-on</h3>
-                <p className="text-sm text-gray-400 mb-6">Smart AI enhancement for your existing website</p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold gradient-text">$149</span>
-                  <span className="text-sm text-gray-500">one-time</span>
-                </div>
-                <div className="space-y-3 mb-8">
-                  {[
-                    "Smart AI chatbot integration",
-                    "Booking automation system",
-                    "Existing website compatibility",
-                    "Fast 3-day delivery",
-                    "30-day free support",
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#2563eb] shrink-0" /> {feat}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/builder"
-                  className="block text-center w-full rounded-xl border border-[#2563eb]/30 py-3 text-sm font-semibold text-[#2563eb] hover:bg-[#2563eb]/10 transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Full Future Re-brand — Featured */}
-            <motion.div variants={scaleUp} className="relative rounded-2xl p-8 overflow-hidden bento-glow group">
-              {/* Animated gradient border */}
-              <div className="absolute inset-0 rounded-2xl gradient-border-animated p-[1px]">
-                <div className="w-full h-full rounded-2xl bg-[#0a0a14]" />
-              </div>
-              <div className="absolute inset-[1px] rounded-2xl bg-[#0a0a14]" />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-[#a855f7]/10 blur-[60px] pointer-events-none" />
-
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center">
-                    <Sparkles className="text-white" size={22} />
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-[#2563eb] to-[#a855f7] text-white">
-                    MOST POPULAR
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">Full Future Re-brand</h3>
-                <p className="text-sm text-gray-400 mb-6">Complete futuristic website redesign with AI</p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold gradient-text">$399</span>
-                  <span className="text-sm text-gray-500">one-time</span>
-                </div>
-                <div className="space-y-3 mb-8">
-                  {[
-                    "Complete website redesign",
-                    "Fully animated futuristic UI",
-                    "Responsive on all devices",
-                    "Core AI features included",
-                    "SEO & performance optimized",
-                    "3 revision rounds included",
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#a855f7] shrink-0" /> {feat}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/builder"
-                  className="block text-center w-full rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] py-3 text-sm font-semibold text-white hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-all hover:scale-[1.02]"
-                >
-                  Start Building
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* AI Maintenance */}
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-8 relative overflow-hidden bento-glow group">
-              <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-[#a855f7]/5 blur-[60px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl glass flex items-center justify-center mb-6">
-                  <Clock className="text-[#a855f7]" size={22} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">AI Maintenance</h3>
-                <p className="text-sm text-gray-400 mb-6">Ongoing AI optimization and support</p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold gradient-text">$29</span>
-                  <span className="text-sm text-gray-500">/month</span>
-                </div>
-                <div className="space-y-3 mb-8">
-                  {[
-                    "AI model knowledge updates",
-                    "Performance monitoring",
-                    "Monthly optimization reports",
-                    "Priority bug fixes",
-                    "24/7 email support",
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#a855f7] shrink-0" /> {feat}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/builder"
-                  className="block text-center w-full rounded-xl border border-[#a855f7]/30 py-3 text-sm font-semibold text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
-                >
-                  Subscribe
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── PORTFOLIO / CASE STUDIES ─── */}
-      <section id="portfolio" className="py-24 px-6 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[#2563eb]/40 to-transparent" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={stagger}
-            className="text-center mb-16"
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-4">
-                <TrendingUp size={12} /> Proven Results
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mt-4">
-              Case <span className="gradient-text">Studies</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="mt-4 text-gray-400 max-w-2xl mx-auto">
-              Real results from real clients powered by our AI-first approach.
-            </motion.p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid md:grid-cols-3 gap-6"
-          >
-            {[
-              {
-                title: "SkinHub AI",
-                desc: "AI-powered skin analysis platform increasing user engagement by 340% and revenue by 120%.",
-                tags: ["AI Vision", "SaaS", "Healthcare"],
-                metric: "+340%",
-                metricLabel: "Engagement",
-              },
-              {
-                title: "TradeFlow Pro",
-                desc: "Automated trading dashboard with real-time AI predictions, serving 10K+ active traders.",
-                tags: ["FinTech", "Real-Time", "ML"],
-                metric: "+$2.4M",
-                metricLabel: "Revenue",
-              },
-              {
-                title: "LuxeRetail AI",
-                desc: "Luxury e-commerce platform with AI stylist reducing returns by 45% and boosting AOV by 60%.",
-                tags: ["E-Commerce", "Fashion", "AI"],
-                metric: "+60%",
-                metricLabel: "AOV",
-              },
-            ].map((item, i) => (
+              {/* Wake-up eye glow — left eye */}
               <motion.div
-                key={i}
-                variants={scaleUp}
-                className="glass rounded-2xl overflow-hidden group cursor-pointer bento-glow"
-              >
-                <div className="h-44 bg-gradient-to-br from-[#2563eb]/10 to-[#a855f7]/10 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2563eb]/5 to-[#a855f7]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="text-center relative z-10">
-                    <div className="text-4xl font-bold gradient-text">{item.metric}</div>
-                    <div className="text-xs text-gray-400 mt-1">{item.metricLabel}</div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-bold text-white">{item.title}</h3>
-                    <ExternalLink size={14} className="text-gray-500 group-hover:text-[#2563eb] transition-colors" />
-                  </div>
-                  <p className="text-gray-400 text-sm mb-4">{item.desc}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {item.tags.map((tag) => (
-                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full glass text-gray-400">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+                className="absolute pointer-events-none rounded-full"
+                style={{
+                  top: "26%",
+                  left: "22%",
+                  width: "12%",
+                  height: "4%",
+                  background: "radial-gradient(ellipse, rgba(34,211,238,0.95) 0%, rgba(37,99,235,0.5) 55%, transparent 100%)",
+                  animation: "eye-pulse 3s ease-in-out infinite",
+                }}
+                initial={{ scaleY: 0, opacity: 0 }}
+                animate={{
+                  scaleY: [0, 0, 0.1, 1, 0.1, 1, 1],
+                  opacity: [0, 0, 0.5, 1, 0.5, 1, 1],
+                }}
+                transition={{
+                  duration: 1.5,
+                  times: [0, 0.15, 0.25, 0.4, 0.5, 0.65, 1],
+                  ease: "easeOut" as const,
+                }}
+              />
 
-      {/* ─── FINAL CTA ─── */}
-      <section className="py-32 px-6 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.06)_0%,_transparent_70%)]" />
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-6">
-                <MessageCircle size={12} /> Let&apos;s Talk
-              </span>
+              {/* Wake-up eye glow — right eye */}
+              <motion.div
+                className="absolute pointer-events-none rounded-full"
+                style={{
+                  top: "26%",
+                  left: "42%",
+                  width: "12%",
+                  height: "4%",
+                  background: "radial-gradient(ellipse, rgba(34,211,238,0.95) 0%, rgba(37,99,235,0.5) 55%, transparent 100%)",
+                  animation: "eye-pulse 3s ease-in-out infinite 0.2s",
+                }}
+                initial={{ scaleY: 0, opacity: 0 }}
+                animate={{
+                  scaleY: [0, 0, 0.1, 1, 0.1, 1, 1],
+                  opacity: [0, 0, 0.5, 1, 0.5, 1, 1],
+                }}
+                transition={{
+                  duration: 1.5,
+                  times: [0, 0.15, 0.25, 0.4, 0.5, 0.65, 1],
+                  ease: "easeOut" as const,
+                  delay: 0.15,
+                }}
+              />
+
+              {/* Hand wave neon pulse overlay (right side of image = hand area) */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  top: "15%",
+                  right: "-8%",
+                  width: "42%",
+                  height: "70%",
+                  animation: "hand-neon-pulse 2.5s ease-in-out infinite",
+                }}
+                animate={{ rotate: [0, 3, -3, 2, -2, 0] }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  repeatType: "loop" as const,
+                  ease: "easeInOut" as const,
+                }}
+              />
             </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mb-6">
-              Ready to <span className="gradient-text">10x Your Revenue</span>?
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-gray-400 mb-10 text-lg max-w-2xl mx-auto">
-              Let our AI engine analyze your business and build the perfect digital system for maximum profit.
-            </motion.p>
-            <motion.div variants={fadeUp} className="flex gap-4 justify-center flex-wrap">
-              <Link
-                href="/builder"
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-10 py-4 text-white text-lg font-semibold transition-all hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] hover:scale-105"
-              >
-                Launch Project Builder
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <a
-                href="https://wa.me/201281835834"
+          </div>
+
+          {/* ═══════════════════════════════════════════════════
+             LAYER 2: Cosmic Case Studies Orbit
+             ═══════════════════════════════════════════════════ */}
+          <div
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ perspective: "900px", transformStyle: "preserve-3d" }}
+          >
+            {CASE_STUDIES.map((study, i) => (
+              <motion.a
+                key={study.link}
+                href={study.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl glass px-10 py-4 text-white text-lg font-semibold hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all"
+                className="absolute pointer-events-auto backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden shadow-2xl transition-shadow hover:shadow-[0_0_50px_rgba(34,211,238,0.15)]"
+                style={{
+                  maxWidth: "28rem",
+                  width: "100%",
+                  x: cardTransforms[i].x,
+                  y: cardTransforms[i].y,
+                  z: cardTransforms[i].z,
+                  opacity: cardOpacity,
+                  scale: cardScale,
+                  background: "rgba(255,255,255,0.05)",
+                }}
               >
-                <MessageCircle size={20} /> WhatsApp Us
-              </a>
-            </motion.div>
+                <div className="p-5">
+                  <div className="overflow-hidden rounded-2xl">
+                    <Image
+                      src={study.image}
+                      alt={study.title}
+                      width={500}
+                      height={300}
+                      className="w-full object-cover"
+                      style={{ aspectRatio: "16/10" }}
+                    />
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white text-base font-semibold tracking-wide">
+                        {study.title}
+                      </h3>
+                      <p className="text-gray-400 text-sm mt-1">{study.subtitle}</p>
+                    </div>
+                    <ArrowRight size={18} className="text-[#22d3ee]/60" />
+                  </div>
+                </div>
+              </motion.a>
+            ))}
+          </div>
+
+          {/* ═══════════════════════════════════════════════════
+             LAYER 3: AI Capabilities Floating Bento Cards
+             ═══════════════════════════════════════════════════ */}
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ opacity: capOpacity, perspective: "1000px" }}
+          >
+            <div className="flex gap-6 md:gap-10 flex-col md:flex-row items-center">
+              {AI_CAPABILITIES.map((cap, i) => {
+                const Icon = cap.icon;
+                return (
+                  <motion.div
+                    key={cap.title}
+                    className={`backdrop-blur-xl border ${cap.borderColor} rounded-3xl overflow-hidden shadow-2xl`}
+                    style={{
+                      width: "clamp(260px, 22vw, 320px)",
+                      scale: capScales[i],
+                      x: i === 1 ? 0 : capXOffsets[i],
+                      y: i === 1 ? capXOffsets[i] : 0,
+                      background: "rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    <div className={`p-6 bg-gradient-to-br ${cap.gradient}`}>
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                        style={{
+                          background: `rgba(${cap.iconColor === "#22d3ee" ? "34,211,238" : cap.iconColor === "#a855f7" ? "168,85,247" : "37,99,235"},0.12)`,
+                        }}
+                      >
+                        <Icon size={24} style={{ color: cap.iconColor }} />
+                      </div>
+                      <h3 className="text-white text-lg font-bold mb-2">{cap.title}</h3>
+                      <p className="text-gray-400 text-sm leading-relaxed">{cap.description}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* ═══════════════════════════════════════════════════
+             LAYER 4: AI Matrix Dashboard + Final CTA
+             ═══════════════════════════════════════════════════ */}
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center overflow-y-auto"
+            style={{ opacity: dashOpacity, scale: dashScale }}
+          >
+            <div className="w-full max-w-6xl mx-auto px-4 py-8 pointer-events-auto">
+
+              {/* Dashboard header */}
+              <div className="text-center mb-8">
+                <div
+                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-[#22d3ee]/20 text-[#22d3ee]/80 mb-4"
+                  style={{ background: "rgba(10,10,30,0.6)", backdropFilter: "blur(12px)" }}
+                >
+                  <Network size={14} /> NEXTGEN AI Command Center
+                </div>
+                <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+                  Real-Time{" "}
+                  <span className="bg-gradient-to-r from-[#22d3ee] to-[#a855f7] bg-clip-text text-transparent">
+                    Intelligence
+                  </span>
+                </h2>
+              </div>
+
+              {/* Stats row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {DASH_STATS.map((stat) => {
+                  const Icon = stat.icon;
+                  return (
+                    <div
+                      key={stat.label}
+                      className="backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+                      style={{ background: "rgba(255,255,255,0.03)" }}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <Icon size={16} style={{ color: stat.color }} />
+                        <span className="text-gray-500 text-xs uppercase tracking-wider">
+                          {stat.label}
+                        </span>
+                      </div>
+                      <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+                        {stat.value}
+                      </div>
+                      <span className="text-xs font-medium" style={{ color: stat.color }}>
+                        {stat.change}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Dashboard main grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {/* Network visualization */}
+                <div
+                  className="md:col-span-2 backdrop-blur-xl border border-white/10 rounded-2xl p-5 relative overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.03)", minHeight: "240px" }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Network size={16} className="text-[#22d3ee]" />
+                    <span className="text-white text-sm font-semibold">Neural Network Activity</span>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-400 text-[10px] uppercase tracking-wider font-medium">
+                        Live
+                      </span>
+                    </span>
+                  </div>
+                  <svg className="w-full h-40" viewBox="0 0 400 160">
+                    {NETWORK_NODES.map((node, ni) =>
+                      NETWORK_NODES.slice(ni + 1)
+                        .filter((_, li) => srand(ni * 100 + li) > 0.6)
+                        .map((target, li) => (
+                          <line
+                            key={`l-${ni}-${li}`}
+                            x1={`${node.x}%`}
+                            y1={`${node.y}%`}
+                            x2={`${target.x}%`}
+                            y2={`${target.y}%`}
+                            stroke="rgba(34,211,238,0.08)"
+                            strokeWidth="0.5"
+                            strokeDasharray="4 4"
+                            style={{
+                              animation: `data-flow ${3 + srand(ni + li) * 4}s linear infinite`,
+                            }}
+                          />
+                        )),
+                    )}
+                    {NETWORK_NODES.map((node, i) => (
+                      <circle
+                        key={`n-${i}`}
+                        cx={`${node.x}%`}
+                        cy={`${node.y}%`}
+                        r={node.size}
+                        fill="#22d3ee"
+                        opacity="0.5"
+                        style={{
+                          animation: `node-pulse ${2 + node.pulseDelay}s ease-in-out infinite ${node.pulseDelay}s`,
+                        }}
+                      />
+                    ))}
+                  </svg>
+                </div>
+
+                {/* Performance metrics */}
+                <div
+                  className="backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+                  style={{ background: "rgba(255,255,255,0.03)" }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <BarChart3 size={16} className="text-[#a855f7]" />
+                    <span className="text-white text-sm font-semibold">Performance</span>
+                  </div>
+                  <div className="flex items-end gap-2 h-32">
+                    {Array.from({ length: 8 }, (_, i) => {
+                      const h = srand(i * 47 + 500) * 70 + 30;
+                      const clr = i % 2 === 0 ? "#22d3ee" : "#a855f7";
+                      return (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-t-md"
+                          style={{
+                            height: `${h}%`,
+                            background: `linear-gradient(to top, ${clr}40, ${clr})`,
+                            animation: `bar-grow 1.2s ease-out ${i * 0.1}s both`,
+                            transformOrigin: "bottom",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between mt-2 text-[10px] text-gray-600">
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                    <span>Sun</span>
+                    <span>Now</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom row: AI Insights + Ultimate CTA */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* AI Insights */}
+                <div
+                  className="backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+                  style={{ background: "rgba(255,255,255,0.03)" }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <BrainCircuit size={16} className="text-[#22d3ee]" />
+                    <span className="text-white text-sm font-semibold">AI Insights Feed</span>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { text: "Revenue projection increased by 34.7%", time: "2m ago", icon: TrendingUp, color: "#22d3ee" },
+                      { text: "New AI agent deployed: Customer Support v3", time: "8m ago", icon: Bot, color: "#a855f7" },
+                      { text: "System optimization complete — 12ms faster", time: "15m ago", icon: Cpu, color: "#10b981" },
+                      { text: "3 new client pipelines activated", time: "22m ago", icon: Sparkles, color: "#22d3ee" },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div
+                          key={item.text}
+                          className="flex items-start gap-3 p-3 rounded-xl border border-white/5"
+                          style={{ background: "rgba(255,255,255,0.02)" }}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ background: `${item.color}15` }}
+                          >
+                            <Icon size={14} style={{ color: item.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white/80 text-xs leading-relaxed">{item.text}</p>
+                            <span className="text-gray-600 text-[10px]">{item.time}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ─── ULTIMATE CTA ─── */}
+                <div
+                  className="backdrop-blur-xl border border-[#22d3ee]/15 rounded-2xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.03)" }}
+                >
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse 80% 80% at 50% 100%, rgba(34,211,238,0.06) 0%, transparent 60%)",
+                    }}
+                  />
+                  <div className="relative">
+                    <Sparkles size={32} className="text-[#22d3ee] mx-auto mb-4" />
+                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight">
+                      Ready to Automate
+                      <br />
+                      Your Future?
+                    </h3>
+                    <p className="text-gray-400 text-sm mb-6 max-w-xs mx-auto">
+                      Join 500+ companies leveraging NEXTGEN AI to transform their digital
+                      presence.
+                    </p>
+                    <Link
+                      href="/builder"
+                      className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#22d3ee] via-[#2563eb] to-[#a855f7] px-8 py-4 text-white text-base font-semibold transition-all hover:shadow-[0_0_50px_rgba(34,211,238,0.35)] hover:scale-105"
+                    >
+                      Start Your Project
+                      <ArrowRight
+                        size={18}
+                        className="group-hover:translate-x-1 transition-transform"
+                      />
+                    </Link>
+                    <p className="text-gray-600 text-xs mt-4">No commitment required</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ─── Hero text overlay ─── */}
+          <motion.div
+            className="absolute inset-x-0 flex flex-col items-center pointer-events-none"
+            style={{ top: "7vh", opacity: textOpacity, y: textY }}
+          >
+            <span
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-[#22d3ee]/20 text-[#22d3ee]/80 mb-5"
+              style={{
+                background: "rgba(10,10,30,0.55)",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+              }}
+            >
+              ✦ Spatial Cinematic Experience
+            </span>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-center leading-none tracking-tight">
+              <span className="gradient-text">NEXTGEN</span>
+            </h1>
+            <p className="mt-4 text-sm md:text-base text-gray-500/80 text-center max-w-sm tracking-wide">
+              Scroll to enter the AI dimension
+            </p>
+          </motion.div>
+
+          {/* ─── Scroll hint ─── */}
+          <motion.div
+            className="absolute inset-x-0 flex flex-col items-center pointer-events-none"
+            style={{ bottom: "4vh", opacity: scrollHintOpacity }}
+          >
+            <span className="text-[10px] uppercase tracking-[0.35em] text-gray-600 mb-3">
+              Scroll
+            </span>
+            <div
+              className="w-5 h-9 rounded-full border border-gray-700/60 flex items-start justify-center pt-1.5"
+              style={{ animation: "scroll-bounce 2.2s ease-in-out infinite" }}
+            >
+              <div className="w-1 h-2.5 rounded-full bg-gradient-to-b from-[#22d3ee] to-[#a855f7]" />
+            </div>
           </motion.div>
         </div>
-      </section>
-    </div>
+      </div>
+    </>
   );
 }
