@@ -1,524 +1,486 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import { useEffect, useMemo, useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import {
-  Bot,
-  BrainCircuit,
-  ArrowRight,
-  TrendingUp,
-  ExternalLink,
-  BarChart3,
-  Shield,
-  Globe,
-  Sparkles,
-  Rocket,
-  Check,
-  Star,
-  Clock,
-  Cpu,
-  Layers,
-  MessageCircle,
-} from "lucide-react";
+import Lenis from "lenis";
 
-const BrainScene = dynamic(() => import("@/components/BrainScene"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[500px] md:h-[600px] flex items-center justify-center">
-      <div className="w-16 h-16 border-2 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
-    </div>
-  ),
-});
+/* ────────────────────────────────────────────────────────────
+   Deterministic PRNG — identical output on server + client
+   to prevent React hydration mismatches.
+   ──────────────────────────────────────────────────────────── */
+function srand(seed: number): number {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" as const } },
-};
+/* ────────────────────────────────────────────────────────────
+   Star field generation
+   ──────────────────────────────────────────────────────────── */
+interface StarData {
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+  animDuration: number;
+  animDelay: number;
+}
 
-const scaleUp = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: "easeOut" as const } },
-};
-
-const stagger = {
-  visible: { transition: { staggerChildren: 0.12 } },
-};
-
-export default function Home() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
+function generateStars(
+  count: number,
+  seedOffset: number,
+  sizeMin: number,
+  sizeMax: number,
+): StarData[] {
+  return Array.from({ length: count }, (_, i) => {
+    const s = i + seedOffset;
+    return {
+      x: srand(s * 13 + 1) * 100,
+      y: srand(s * 17 + 2) * 100,
+      size: srand(s * 7 + 3) * (sizeMax - sizeMin) + sizeMin,
+      opacity: srand(s * 11 + 4) * 0.6 + 0.3,
+      animDuration: srand(s * 19 + 5) * 5 + 2,
+      animDelay: srand(s * 23 + 6) * 8,
+    };
   });
-  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Oracle Head — Premium Cybernetic AI Robot Head
+   High-fidelity SVG composition with glow filters,
+   circuit traces, angular cranium, animated blink eyes.
+   ──────────────────────────────────────────────────────────── */
+function OracleHead() {
+  return (
+    <svg
+      viewBox="0 0 400 520"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-[38vmin] h-auto"
+      style={{ filter: "drop-shadow(0 0 80px rgba(37,99,235,0.12))" }}
+    >
+      <defs>
+        <filter id="glow-ambient" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
+        </filter>
+        <filter id="glow-eye" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="glow-circuit" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <linearGradient id="craniumFill" x1="200" y1="20" x2="200" y2="475" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#16163a" />
+          <stop offset="35%" stopColor="#0e0e28" />
+          <stop offset="100%" stopColor="#08081a" />
+        </linearGradient>
+        <linearGradient id="innerFaceFill" x1="200" y1="52" x2="200" y2="444" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#111130" />
+          <stop offset="100%" stopColor="#0a0a1e" />
+        </linearGradient>
+        <linearGradient id="eyeFill" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%" stopColor="#2563eb" />
+          <stop offset="50%" stopColor="#60a5fa" />
+          <stop offset="100%" stopColor="#2563eb" />
+        </linearGradient>
+        <linearGradient id="visorFill" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="rgba(37,99,235,0.02)" />
+          <stop offset="50%" stopColor="rgba(37,99,235,0.1)" />
+          <stop offset="100%" stopColor="rgba(37,99,235,0.02)" />
+        </linearGradient>
+      </defs>
+
+      {/* Ambient glow behind head */}
+      <ellipse cx="200" cy="260" rx="190" ry="240" fill="rgba(37,99,235,0.035)" filter="url(#glow-ambient)" />
+      <ellipse cx="200" cy="230" rx="120" ry="140" fill="rgba(168,85,247,0.02)" filter="url(#glow-ambient)" />
+
+      {/* Outer cranium — angular polygon */}
+      <path
+        d="M200,20 L105,115 L82,245 L115,395 L165,455 L200,472 L235,455 L285,395 L318,245 L295,115 Z"
+        fill="url(#craniumFill)"
+        stroke="rgba(37,99,235,0.3)"
+        strokeWidth="1.2"
+      />
+      {/* Cranium inner edge highlight */}
+      <path
+        d="M200,24 L110,117 L87,244 L118,392 L167,452 L200,468 L233,452 L282,392 L313,244 L290,117 Z"
+        fill="none"
+        stroke="rgba(168,85,247,0.08)"
+        strokeWidth="0.5"
+      />
+
+      {/* Inner face plate */}
+      <path
+        d="M200,52 L128,132 L112,242 L138,378 L172,432 L200,444 L228,432 L262,378 L288,242 L272,132 Z"
+        fill="url(#innerFaceFill)"
+        stroke="rgba(168,85,247,0.12)"
+        strokeWidth="0.7"
+      />
+
+      {/* Visor band across eye area */}
+      <rect x="78" y="198" width="244" height="48" rx="6" fill="url(#visorFill)" stroke="rgba(37,99,235,0.12)" strokeWidth="0.5" />
+      <line x1="78" y1="222" x2="322" y2="222" stroke="rgba(37,99,235,0.06)" strokeWidth="0.3" />
+
+      {/* Eyes — blink animation */}
+      <motion.g
+        initial={{ scaleY: 1 }}
+        animate={{ scaleY: [1, 1, 0.04, 1, 1, 1, 0.04, 1] }}
+        transition={{
+          duration: 5,
+          times: [0, 0.37, 0.41, 0.45, 0.84, 0.89, 0.93, 1],
+          repeat: Infinity,
+          repeatDelay: 2.5,
+          ease: "easeInOut" as const,
+        }}
+        style={{ transformOrigin: "200px 222px" }}
+      >
+        <rect x="115" y="208" width="70" height="28" rx="5" fill="url(#eyeFill)" opacity="0.92" filter="url(#glow-eye)" />
+        <rect x="215" y="208" width="70" height="28" rx="5" fill="url(#eyeFill)" opacity="0.92" filter="url(#glow-eye)" />
+      </motion.g>
+
+      {/* Eye inner highlights */}
+      <rect x="130" y="217" width="30" height="10" rx="3" fill="rgba(255,255,255,0.1)" />
+      <rect x="230" y="217" width="30" height="10" rx="3" fill="rgba(255,255,255,0.1)" />
+      {/* Eye pupil dots */}
+      <circle cx="150" cy="222" r="3" fill="rgba(255,255,255,0.06)" />
+      <circle cx="250" cy="222" r="3" fill="rgba(255,255,255,0.06)" />
+
+      {/* Central ridge — forehead to chin */}
+      <line x1="200" y1="58" x2="200" y2="195" stroke="rgba(168,85,247,0.28)" strokeWidth="0.8" filter="url(#glow-circuit)" />
+      <line x1="200" y1="250" x2="200" y2="438" stroke="rgba(168,85,247,0.2)" strokeWidth="0.7" filter="url(#glow-circuit)" />
+
+      {/* Forehead diamond sensor */}
+      <path d="M200,66 L193,75 L200,84 L207,75 Z" fill="rgba(37,99,235,0.12)" stroke="rgba(37,99,235,0.45)" strokeWidth="0.6" />
+
+      {/* Forehead circuit traces — upper */}
+      <path d="M200,75 L170,98 L145,102" stroke="rgba(37,99,235,0.2)" strokeWidth="0.6" fill="none" filter="url(#glow-circuit)" />
+      <path d="M200,75 L230,98 L255,102" stroke="rgba(37,99,235,0.2)" strokeWidth="0.6" fill="none" filter="url(#glow-circuit)" />
+      {/* Forehead circuit traces — lower */}
+      <path d="M200,105 L165,128 L142,138" stroke="rgba(168,85,247,0.15)" strokeWidth="0.5" fill="none" />
+      <path d="M200,105 L235,128 L258,138" stroke="rgba(168,85,247,0.15)" strokeWidth="0.5" fill="none" />
+      {/* Vertical connectors */}
+      <path d="M145,102 L145,135" stroke="rgba(37,99,235,0.12)" strokeWidth="0.4" fill="none" />
+      <path d="M255,102 L255,135" stroke="rgba(37,99,235,0.12)" strokeWidth="0.4" fill="none" />
+      {/* Inner forehead branches */}
+      <path d="M200,140 L183,162" stroke="rgba(37,99,235,0.1)" strokeWidth="0.4" fill="none" />
+      <path d="M200,140 L217,162" stroke="rgba(37,99,235,0.1)" strokeWidth="0.4" fill="none" />
+      <path d="M200,155 L190,175 L178,180" stroke="rgba(168,85,247,0.08)" strokeWidth="0.3" fill="none" />
+      <path d="M200,155 L210,175 L222,180" stroke="rgba(168,85,247,0.08)" strokeWidth="0.3" fill="none" />
+
+      {/* Circuit nodes */}
+      <circle cx="200" cy="75" r="2.5" fill="#2563eb" opacity="0.55" filter="url(#glow-circuit)" />
+      <circle cx="145" cy="102" r="1.8" fill="#a855f7" opacity="0.4" />
+      <circle cx="255" cy="102" r="1.8" fill="#a855f7" opacity="0.4" />
+      <circle cx="200" cy="105" r="1.8" fill="#2563eb" opacity="0.35" />
+      <circle cx="200" cy="140" r="1.5" fill="#a855f7" opacity="0.28" />
+      <circle cx="170" cy="98" r="1.2" fill="#2563eb" opacity="0.22" />
+      <circle cx="230" cy="98" r="1.2" fill="#2563eb" opacity="0.22" />
+      <circle cx="142" cy="138" r="1" fill="#a855f7" opacity="0.2" />
+      <circle cx="258" cy="138" r="1" fill="#a855f7" opacity="0.2" />
+
+      {/* Cheek contour traces */}
+      <path d="M104,252 L110,288 Q116,322 132,352" stroke="rgba(37,99,235,0.16)" strokeWidth="0.6" fill="none" />
+      <path d="M296,252 L290,288 Q284,322 268,352" stroke="rgba(37,99,235,0.16)" strokeWidth="0.6" fill="none" />
+      <path d="M114,268 L118,298 Q122,328 138,358" stroke="rgba(168,85,247,0.08)" strokeWidth="0.4" fill="none" />
+      <path d="M286,268 L282,298 Q278,328 262,358" stroke="rgba(168,85,247,0.08)" strokeWidth="0.4" fill="none" />
+      {/* Cheek nodes */}
+      <circle cx="110" cy="288" r="1.2" fill="#2563eb" opacity="0.18" />
+      <circle cx="290" cy="288" r="1.2" fill="#2563eb" opacity="0.18" />
+
+      {/* Nose bridge */}
+      <path d="M192,260 L200,290 L208,260" stroke="rgba(37,99,235,0.1)" strokeWidth="0.5" fill="none" />
+      <circle cx="200" cy="290" r="1.2" fill="#2563eb" opacity="0.15" />
+
+      {/* Mouth line */}
+      <path d="M172,340 Q186,350 200,348 Q214,350 228,340" stroke="rgba(37,99,235,0.12)" strokeWidth="0.5" fill="none" />
+
+      {/* Jaw segment lines */}
+      <line x1="135" y1="378" x2="200" y2="384" stroke="rgba(37,99,235,0.14)" strokeWidth="0.6" />
+      <line x1="200" y1="384" x2="265" y2="378" stroke="rgba(37,99,235,0.14)" strokeWidth="0.6" />
+      <line x1="148" y1="398" x2="200" y2="406" stroke="rgba(168,85,247,0.1)" strokeWidth="0.5" />
+      <line x1="200" y1="406" x2="252" y2="398" stroke="rgba(168,85,247,0.1)" strokeWidth="0.5" />
+      <line x1="162" y1="418" x2="200" y2="424" stroke="rgba(37,99,235,0.08)" strokeWidth="0.4" />
+      <line x1="200" y1="424" x2="238" y2="418" stroke="rgba(37,99,235,0.08)" strokeWidth="0.4" />
+      {/* Jaw nodes */}
+      <circle cx="135" cy="378" r="1.5" fill="#2563eb" opacity="0.25" />
+      <circle cx="200" cy="384" r="2" fill="#a855f7" opacity="0.3" />
+      <circle cx="265" cy="378" r="1.5" fill="#2563eb" opacity="0.25" />
+
+      {/* Temple accent panels */}
+      <path d="M98,162 L78,195 L78,250 L98,282" stroke="rgba(168,85,247,0.18)" strokeWidth="0.7" fill="rgba(168,85,247,0.015)" />
+      <path d="M302,162 L322,195 L322,250 L302,282" stroke="rgba(168,85,247,0.18)" strokeWidth="0.7" fill="rgba(168,85,247,0.015)" />
+      {/* Temple horizontal details */}
+      <line x1="80" y1="212" x2="95" y2="212" stroke="rgba(37,99,235,0.1)" strokeWidth="0.4" />
+      <line x1="80" y1="228" x2="92" y2="228" stroke="rgba(37,99,235,0.08)" strokeWidth="0.3" />
+      <line x1="80" y1="242" x2="90" y2="242" stroke="rgba(168,85,247,0.06)" strokeWidth="0.3" />
+      <line x1="305" y1="212" x2="320" y2="212" stroke="rgba(37,99,235,0.1)" strokeWidth="0.4" />
+      <line x1="308" y1="228" x2="320" y2="228" stroke="rgba(37,99,235,0.08)" strokeWidth="0.3" />
+      <line x1="310" y1="242" x2="320" y2="242" stroke="rgba(168,85,247,0.06)" strokeWidth="0.3" />
+
+      {/* Ear nodes */}
+      <circle cx="78" cy="222" r="2" fill="#a855f7" opacity="0.15" />
+      <circle cx="322" cy="222" r="2" fill="#a855f7" opacity="0.15" />
+
+      {/* Neck base */}
+      <path d="M168,448 L168,488 Q182,502 200,506 Q218,502 232,488 L232,448" stroke="rgba(37,99,235,0.16)" strokeWidth="0.7" fill="rgba(8,8,22,0.6)" />
+      <line x1="178" y1="468" x2="222" y2="468" stroke="rgba(37,99,235,0.08)" strokeWidth="0.4" />
+      <line x1="182" y1="482" x2="218" y2="482" stroke="rgba(168,85,247,0.06)" strokeWidth="0.3" />
+      <circle cx="200" cy="468" r="1.5" fill="#2563eb" opacity="0.18" />
+      <circle cx="200" cy="488" r="1" fill="#a855f7" opacity="0.12" />
+
+      {/* Crown apex */}
+      <path d="M200,20 L195,6 L200,-5 L205,6 Z" fill="rgba(168,85,247,0.18)" stroke="rgba(168,85,247,0.35)" strokeWidth="0.5" />
+      <circle cx="200" cy="1" r="1.5" fill="#a855f7" opacity="0.3" />
+
+      {/* Additional cross-face circuits for density */}
+      <path d="M128,175 L150,172 L165,180" stroke="rgba(37,99,235,0.06)" strokeWidth="0.3" fill="none" />
+      <path d="M272,175 L250,172 L235,180" stroke="rgba(37,99,235,0.06)" strokeWidth="0.3" fill="none" />
+      <path d="M125,310 L145,305 L160,312" stroke="rgba(168,85,247,0.05)" strokeWidth="0.3" fill="none" />
+      <path d="M275,310 L255,305 L240,312" stroke="rgba(168,85,247,0.05)" strokeWidth="0.3" fill="none" />
+    </svg>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   Star Layer Renderer
+   ──────────────────────────────────────────────────────────── */
+function StarLayer({
+  stars,
+  driftAnimation,
+  colorTint,
+}: {
+  stars: StarData[];
+  driftAnimation: string;
+  colorTint: string;
+}) {
+  return (
+    <div className="absolute inset-0" style={{ animation: driftAnimation }}>
+      {stars.map((star, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            background: `radial-gradient(circle, ${colorTint} 0%, transparent 70%)`,
+            animation: `twinkle ${star.animDuration}s ${star.animDelay}s ease-in-out infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   Home — Phase 1: Spatial Cinematic Experience
+   One-box viewport, galactic starfield, Oracle Head portal
+   ──────────────────────────────────────────────────────────── */
+export default function Home() {
+  /* ── Lenis smooth scroll ── */
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.4,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    return () => lenis.destroy();
+  }, []);
+
+  /* ── Scroll proxy ref ── */
+  const scrollProxyRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: scrollProxyRef,
+    offset: ["start start", "end end"],
+  });
+
+  /* ── Scroll-linked transforms ── */
+  const headScale = useTransform(scrollYProgress, [0, 0.78], [1, 20]);
+  const headOpacity = useTransform(scrollYProgress, [0, 0.52, 0.78], [1, 1, 0]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
+  const textY = useTransform(scrollYProgress, [0, 0.1], [0, -80]);
+  const nebulaScale = useTransform(scrollYProgress, [0, 1], [1, 1.5]);
+  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0]);
+
+  /* ── Star data (memoised, deterministic) ── */
+  const farStars = useMemo(() => generateStars(80, 0, 0.5, 1.5), []);
+  const midStars = useMemo(() => generateStars(50, 500, 1.2, 2.5), []);
+  const nearStars = useMemo(() => generateStars(18, 1000, 2.2, 3.8), []);
 
   return (
-    <div className="overflow-hidden">
-      {/* ─── HERO ─── */}
-      <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center px-6">
-        {/* Ambient background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.1)_0%,_transparent_60%)]" />
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-[#2563eb]/5 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-[#a855f7]/5 blur-[100px] pointer-events-none" />
+    <>
+      {/* Inline keyframes for star animations */}
+      <style>{`
+        @keyframes twinkle {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.06; }
+        }
+        @keyframes drift-far {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(5px, 8px); }
+          66% { transform: translate(-3px, 3px); }
+        }
+        @keyframes drift-mid {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(-10px, 6px); }
+          66% { transform: translate(7px, -5px); }
+        }
+        @keyframes drift-near {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(14px, -10px); }
+          66% { transform: translate(-8px, 12px); }
+        }
+        @keyframes scroll-bounce {
+          0%, 100% { transform: translateY(0); opacity: 0.5; }
+          50% { transform: translateY(10px); opacity: 1; }
+        }
+      `}</style>
 
-        <motion.div style={{ opacity: heroOpacity, scale: heroScale }}>
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-            className="relative z-10 text-center max-w-5xl mx-auto"
-          >
-            {/* Badge */}
-            <motion.div variants={fadeUp} className="mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb]">
-                <Sparkles size={12} /> AI-Powered Digital Engine
-              </span>
-            </motion.div>
+      {/* ── Scroll proxy: tall container that generates scroll distance ── */}
+      <div ref={scrollProxyRef} className="relative w-screen" style={{ height: "500vh" }}>
 
-            <motion.h1
-              variants={fadeUp}
-              className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight"
-            >
-              Build <span className="gradient-text">Intelligent Systems</span>
-              <br />
-              That <span className="gradient-text">Print Revenue</span> 24/7
-            </motion.h1>
+        {/* ── Fixed visual layer ── */}
+        <div className="fixed inset-0 h-screen w-screen overflow-x-hidden" style={{ zIndex: 10 }}>
 
-            <motion.p
-              variants={fadeUp}
-              className="mt-6 text-base md:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed"
-            >
-              NEXTGEN transforms standard websites into AI-powered profit engines.
-              We don&apos;t just build sites — we engineer revenue machines.
-            </motion.p>
+          {/* ─── Galactic Background ─── */}
+          <div className="absolute inset-0 overflow-hidden" style={{ background: "#05050a" }}>
 
-            <motion.div variants={fadeUp} className="mt-10 flex gap-4 justify-center flex-wrap">
-              <Link
-                href="/builder"
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-8 py-3.5 text-white font-semibold transition-all hover:shadow-[0_0_40px_rgba(37,99,235,0.5)] hover:scale-105"
-              >
-                Start Your Project
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <a
-                href="#services"
-                className="inline-flex items-center gap-2 rounded-xl glass px-8 py-3.5 text-white font-semibold hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all"
-              >
-                Explore Services
-              </a>
-            </motion.div>
-
-            {/* Social proof strip */}
-            <motion.div variants={fadeUp} className="mt-12 flex items-center justify-center gap-8 text-gray-500 text-xs">
-              <div className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> 4.9/5 Rating</div>
-              <div className="h-3 w-px bg-gray-700" />
-              <div>150+ Projects Delivered</div>
-              <div className="h-3 w-px bg-gray-700" />
-              <div className="flex items-center gap-1"><Globe size={12} /> 20+ Countries</div>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-
-        <BrainScene />
-
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#05050a] to-transparent" />
-      </section>
-
-      {/* ─── SERVICES BENTO GRID ─── */}
-      <section id="services" className="py-24 px-6 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[#2563eb]/40 to-transparent" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={stagger}
-            className="text-center mb-16"
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#a855f7]/20 text-[#a855f7] mb-4">
-                <Cpu size={12} /> Core Capabilities
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mt-4">
-              Everything Your Business <span className="gradient-text">Needs</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="mt-4 text-gray-400 max-w-2xl mx-auto">
-              AI-powered solutions engineered for maximum ROI. Each service is designed to compound your growth.
-            </motion.p>
-          </motion.div>
-
-          {/* Bento Grid */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            {/* Large card — spans 2 cols */}
+            {/* Nebula — shifting radial gradients */}
             <motion.div
-              variants={scaleUp}
-              className="md:col-span-2 glass rounded-2xl p-8 group relative overflow-hidden bento-glow"
+              className="absolute"
+              style={{
+                inset: "-25%",
+                scale: nebulaScale,
+              }}
+              animate={{ rotate: [0, 360] }}
+              transition={{
+                rotate: { duration: 180, repeat: Infinity, ease: "linear" },
+              }}
             >
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#2563eb]/5 blur-[80px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="flex gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl glass flex items-center justify-center">
-                    <TrendingUp className="text-[#2563eb]" size={22} />
-                  </div>
-                  <div className="w-12 h-12 rounded-xl glass flex items-center justify-center">
-                    <BarChart3 className="text-[#a855f7]" size={22} />
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  Intelligent Web Transformation
-                </h3>
-                <p className="text-gray-400 mb-6 max-w-lg">
-                  CRO-optimized, blazing-fast websites that convert visitors into customers.
-                  Every pixel engineered for performance and profit.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {["CRO Optimization", "Speed Analytics", "A/B Testing", "Revenue Tracking"].map((tag) => (
-                    <span key={tag} className="text-[10px] px-3 py-1 rounded-full glass text-gray-300">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 80% 55% at 48% 42%, rgba(37,99,235,0.09) 0%, transparent 68%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 55% 70% at 28% 58%, rgba(168,85,247,0.065) 0%, transparent 55%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 45% 45% at 72% 38%, rgba(37,99,235,0.055) 0%, transparent 50%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 35% 30% at 58% 68%, rgba(168,85,247,0.04) 0%, transparent 45%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 25% 40% at 15% 25%, rgba(37,99,235,0.035) 0%, transparent 40%)",
+                }}
+              />
             </motion.div>
 
-            {/* Tall card */}
+            {/* Star layers — 3 depth tiers with independent drift */}
+            <StarLayer
+              stars={farStars}
+              driftAnimation="drift-far 50s ease-in-out infinite"
+              colorTint="rgba(200,215,255,0.85)"
+            />
+            <StarLayer
+              stars={midStars}
+              driftAnimation="drift-mid 38s ease-in-out infinite"
+              colorTint="rgba(180,200,255,0.8)"
+            />
+            <StarLayer
+              stars={nearStars}
+              driftAnimation="drift-near 28s ease-in-out infinite"
+              colorTint="rgba(255,255,255,0.95)"
+            />
+          </div>
+
+          {/* ─── Oracle Head Portal ─── */}
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ perspective: "1200px" }}
+          >
             <motion.div
-              variants={scaleUp}
-              className="md:row-span-2 glass rounded-2xl p-8 group relative overflow-hidden bento-glow flex flex-col justify-between"
+              className="will-change-transform"
+              style={{ scale: headScale, opacity: headOpacity }}
             >
-              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-[#a855f7]/5 blur-[60px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl glass flex items-center justify-center mb-6">
-                  <BrainCircuit className="text-[#a855f7]" size={22} />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">Custom AI Integration</h3>
-                <p className="text-gray-400 mb-6">
-                  From chatbots to predictive analytics — we embed bespoke AI solutions directly
-                  into your business workflow for 24/7 automation.
-                </p>
-                <div className="space-y-3">
-                  {["Smart Chatbots", "Predictive Analytics", "Workflow Automation", "Custom ML Models"].map((item) => (
-                    <div key={item} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#a855f7]" /> {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-8 text-5xl font-bold gradient-text">24/7</div>
+              <OracleHead />
             </motion.div>
+          </div>
 
-            {/* Two small cards */}
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-6 group bento-glow">
-              <div className="w-10 h-10 rounded-xl glass flex items-center justify-center mb-4">
-                <Shield className="text-[#2563eb]" size={18} />
-              </div>
-              <h4 className="text-lg font-bold text-white mb-2">Enterprise Security</h4>
-              <p className="text-sm text-gray-400">End-to-end encryption with SOC2 compliance and zero-trust architecture.</p>
-              <div className="mt-4 text-3xl font-bold text-[#2563eb]">99.9%</div>
-              <div className="text-xs text-gray-500">Uptime guaranteed</div>
-            </motion.div>
+          {/* ─── Hero text overlay ─── */}
+          <motion.div
+            className="absolute inset-x-0 flex flex-col items-center pointer-events-none"
+            style={{ top: "7vh", opacity: textOpacity, y: textY }}
+          >
+            <span
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-[#2563eb]/20 text-[#2563eb]/80 mb-5"
+              style={{
+                background: "rgba(10,10,30,0.55)",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+              }}
+            >
+              ✦ Spatial Cinematic Experience
+            </span>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-center leading-none tracking-tight">
+              <span className="gradient-text">NEXTGEN</span>
+            </h1>
+            <p className="mt-4 text-sm md:text-base text-gray-500/80 text-center max-w-sm tracking-wide">
+              Scroll to enter the AI dimension
+            </p>
+          </motion.div>
 
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-6 group bento-glow">
-              <div className="w-10 h-10 rounded-xl glass flex items-center justify-center mb-4">
-                <Rocket className="text-[#a855f7]" size={18} />
-              </div>
-              <h4 className="text-lg font-bold text-white mb-2">Lightning Delivery</h4>
-              <p className="text-sm text-gray-400">From concept to launch in weeks, not months. Agile sprints with daily updates.</p>
-              <div className="mt-4 text-3xl font-bold text-[#a855f7]">&lt;2wk</div>
-              <div className="text-xs text-gray-500">Average delivery</div>
-            </motion.div>
+          {/* ─── Scroll hint ─── */}
+          <motion.div
+            className="absolute inset-x-0 flex flex-col items-center pointer-events-none"
+            style={{ bottom: "4vh", opacity: scrollHintOpacity }}
+          >
+            <span className="text-[10px] uppercase tracking-[0.35em] text-gray-600 mb-3">
+              Scroll
+            </span>
+            <div
+              className="w-5 h-9 rounded-full border border-gray-700/60 flex items-start justify-center pt-1.5"
+              style={{ animation: "scroll-bounce 2.2s ease-in-out infinite" }}
+            >
+              <div className="w-1 h-2.5 rounded-full bg-gradient-to-b from-[#2563eb] to-[#a855f7]" />
+            </div>
           </motion.div>
         </div>
-      </section>
-
-      {/* ─── PRICING BENTO GRID ─── */}
-      <section id="pricing" className="py-24 px-6 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[#a855f7]/40 to-transparent" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={stagger}
-            className="text-center mb-16"
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-4">
-                <Layers size={12} /> Transparent Pricing
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mt-4">
-              Invest in Your <span className="gradient-text">Growth</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="mt-4 text-gray-400 max-w-2xl mx-auto">
-              Choose the package that fits your ambition. Every plan includes premium support and dedicated project management.
-            </motion.p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {/* AI Add-on */}
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-8 relative overflow-hidden bento-glow group">
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-[#2563eb]/5 blur-[60px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl glass flex items-center justify-center mb-6">
-                  <Bot className="text-[#2563eb]" size={22} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">AI Add-on</h3>
-                <p className="text-sm text-gray-400 mb-6">Smart AI enhancement for your existing website</p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold gradient-text">$149</span>
-                  <span className="text-sm text-gray-500">one-time</span>
-                </div>
-                <div className="space-y-3 mb-8">
-                  {[
-                    "Smart AI chatbot integration",
-                    "Booking automation system",
-                    "Existing website compatibility",
-                    "Fast 3-day delivery",
-                    "30-day free support",
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#2563eb] shrink-0" /> {feat}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/builder"
-                  className="block text-center w-full rounded-xl border border-[#2563eb]/30 py-3 text-sm font-semibold text-[#2563eb] hover:bg-[#2563eb]/10 transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Full Future Re-brand — Featured */}
-            <motion.div variants={scaleUp} className="relative rounded-2xl p-8 overflow-hidden bento-glow group">
-              {/* Animated gradient border */}
-              <div className="absolute inset-0 rounded-2xl gradient-border-animated p-[1px]">
-                <div className="w-full h-full rounded-2xl bg-[#0a0a14]" />
-              </div>
-              <div className="absolute inset-[1px] rounded-2xl bg-[#0a0a14]" />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-[#a855f7]/10 blur-[60px] pointer-events-none" />
-
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#a855f7] flex items-center justify-center">
-                    <Sparkles className="text-white" size={22} />
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-[#2563eb] to-[#a855f7] text-white">
-                    MOST POPULAR
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">Full Future Re-brand</h3>
-                <p className="text-sm text-gray-400 mb-6">Complete futuristic website redesign with AI</p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold gradient-text">$399</span>
-                  <span className="text-sm text-gray-500">one-time</span>
-                </div>
-                <div className="space-y-3 mb-8">
-                  {[
-                    "Complete website redesign",
-                    "Fully animated futuristic UI",
-                    "Responsive on all devices",
-                    "Core AI features included",
-                    "SEO & performance optimized",
-                    "3 revision rounds included",
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#a855f7] shrink-0" /> {feat}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/builder"
-                  className="block text-center w-full rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] py-3 text-sm font-semibold text-white hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-all hover:scale-[1.02]"
-                >
-                  Start Building
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* AI Maintenance */}
-            <motion.div variants={scaleUp} className="glass rounded-2xl p-8 relative overflow-hidden bento-glow group">
-              <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-[#a855f7]/5 blur-[60px] pointer-events-none" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl glass flex items-center justify-center mb-6">
-                  <Clock className="text-[#a855f7]" size={22} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-1">AI Maintenance</h3>
-                <p className="text-sm text-gray-400 mb-6">Ongoing AI optimization and support</p>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold gradient-text">$29</span>
-                  <span className="text-sm text-gray-500">/month</span>
-                </div>
-                <div className="space-y-3 mb-8">
-                  {[
-                    "AI model knowledge updates",
-                    "Performance monitoring",
-                    "Monthly optimization reports",
-                    "Priority bug fixes",
-                    "24/7 email support",
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check size={14} className="text-[#a855f7] shrink-0" /> {feat}
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/builder"
-                  className="block text-center w-full rounded-xl border border-[#a855f7]/30 py-3 text-sm font-semibold text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
-                >
-                  Subscribe
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── PORTFOLIO / CASE STUDIES ─── */}
-      <section id="portfolio" className="py-24 px-6 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-[#2563eb]/40 to-transparent" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={stagger}
-            className="text-center mb-16"
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-4">
-                <TrendingUp size={12} /> Proven Results
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mt-4">
-              Case <span className="gradient-text">Studies</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="mt-4 text-gray-400 max-w-2xl mx-auto">
-              Real results from real clients powered by our AI-first approach.
-            </motion.p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid md:grid-cols-3 gap-6"
-          >
-            {[
-              {
-                title: "SkinHub AI",
-                desc: "AI-powered skin analysis platform increasing user engagement by 340% and revenue by 120%.",
-                tags: ["AI Vision", "SaaS", "Healthcare"],
-                metric: "+340%",
-                metricLabel: "Engagement",
-              },
-              {
-                title: "TradeFlow Pro",
-                desc: "Automated trading dashboard with real-time AI predictions, serving 10K+ active traders.",
-                tags: ["FinTech", "Real-Time", "ML"],
-                metric: "+$2.4M",
-                metricLabel: "Revenue",
-              },
-              {
-                title: "LuxeRetail AI",
-                desc: "Luxury e-commerce platform with AI stylist reducing returns by 45% and boosting AOV by 60%.",
-                tags: ["E-Commerce", "Fashion", "AI"],
-                metric: "+60%",
-                metricLabel: "AOV",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                variants={scaleUp}
-                className="glass rounded-2xl overflow-hidden group cursor-pointer bento-glow"
-              >
-                <div className="h-44 bg-gradient-to-br from-[#2563eb]/10 to-[#a855f7]/10 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2563eb]/5 to-[#a855f7]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="text-center relative z-10">
-                    <div className="text-4xl font-bold gradient-text">{item.metric}</div>
-                    <div className="text-xs text-gray-400 mt-1">{item.metricLabel}</div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-bold text-white">{item.title}</h3>
-                    <ExternalLink size={14} className="text-gray-500 group-hover:text-[#2563eb] transition-colors" />
-                  </div>
-                  <p className="text-gray-400 text-sm mb-4">{item.desc}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {item.tags.map((tag) => (
-                      <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full glass text-gray-400">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── FINAL CTA ─── */}
-      <section className="py-32 px-6 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(37,99,235,0.06)_0%,_transparent_70%)]" />
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-          >
-            <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold glass border border-[#2563eb]/20 text-[#2563eb] mb-6">
-                <MessageCircle size={12} /> Let&apos;s Talk
-              </span>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mb-6">
-              Ready to <span className="gradient-text">10x Your Revenue</span>?
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-gray-400 mb-10 text-lg max-w-2xl mx-auto">
-              Let our AI engine analyze your business and build the perfect digital system for maximum profit.
-            </motion.p>
-            <motion.div variants={fadeUp} className="flex gap-4 justify-center flex-wrap">
-              <Link
-                href="/builder"
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#a855f7] px-10 py-4 text-white text-lg font-semibold transition-all hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] hover:scale-105"
-              >
-                Launch Project Builder
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <a
-                href="https://wa.me/201281835834"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl glass px-10 py-4 text-white text-lg font-semibold hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all"
-              >
-                <MessageCircle size={20} /> WhatsApp Us
-              </a>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-    </div>
+      </div>
+    </>
   );
 }
